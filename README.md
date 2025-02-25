@@ -3,8 +3,9 @@
 Welcome to the **agent-rl** repository! This repo contains training scripts for Reinforcement Learning with GRPO (Group Relative Policy Optimization) using the ms‑swift framework (v3) along with bleeding edge versions of Hugging Face Transformers and vLLM.
 
 
-![Robo Workout](https://github.com/the-laughing-monkey/agent-rl/blob/main/images/robo-workout-1-smaller.jpg?raw=true)
-
+<div align="center">
+  <img src="https://github.com/the-laughing-monkey/agent-rl/blob/main/images/robo-workout-1-smaller.jpg?raw=true" alt="Robo Workout">
+</div>
 ## Requirements
 
 - **Python 3.8+**
