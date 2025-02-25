@@ -1,6 +1,6 @@
 # agent-rl Training Scripts
 
-Welcome to the **agent-rl** repository! This repo contains training scripts for Reinforcement Learning from Human Feedback (RLHF) using the ms‑swift framework (v3) along with bleeding edge versions of Hugging Face Transformers and vLLM.
+Welcome to the **agent-rl** repository! This repo contains training scripts for Reinforcement Learning with GRPO (Group Relative Policy Optimization) using the ms‑swift framework (v3) along with bleeding edge versions of Hugging Face Transformers and vLLM.
 
 ## Requirements
 
@@ -34,6 +34,7 @@ Each script sets critical training parameters such as batch sizes, number of gen
 
 ## References
 
+- [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300)
 - [ms‑swift GRPO Documentation](https://github.com/modelscope/ms-swift/blob/main/docs/source_en/Instruction/GRPO.md)
 - [Hugging Face Transformers Documentation](https://huggingface.co/docs/transformers)
 - [vLLM Documentation](https://vllm.ai)
