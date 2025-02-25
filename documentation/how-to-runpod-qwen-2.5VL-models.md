@@ -163,9 +163,17 @@ export NCCL_DEBUG_SUBSYS=ALL
 
 ```bash     
 pip install qwen-vl-utils
-pip uninstall -y vllm; pip install vllm
-#  Or nightly build
+
+# Nightly build of vLLM
+
+```bash
 pip uninstall -y vllm; pip install https://vllm-wheels.s3.us-west-2.amazonaws.com/nightly/vllm-1.0.0.dev-cp38-abi3-manylinux1_x86_64.whl
+```
+
+# For reference the standard install is:
+
+```bash
+pip install vllm
 ```
 
 # LIKELY YOU DO NOT NEED THIS AS IT IS ALREADY installed by the above vllm command but it is here for reference:
@@ -183,13 +191,6 @@ For Qwen 2.5 VL models you may need this until official release:
 pip install --upgrade --force-reinstall git+https://github.com/huggingface/transformers@f3f6c86582611976e72be054675e2bf0abb5f775
 ```
 
-OR if it is already pushed to the nightly you can use this instead:
-
-# Install latest development version of transformers
-```bash
-  pip install --upgrade --force-reinstall git+https://github.com/huggingface/transformers.git
-```
-
 
 # Then install flash-attn from PyPI
 
@@ -200,7 +201,7 @@ pip install flash-attn --no-build-isolation
 
 ## 9. Move Cache Directories to Data Volume
 
-To preserve disk space on the container and utilize the larger data volume, move cache directories:
+To preserve disk space on the container and utilize the larger data volume for model storage, move cache directories:
 
 ```bash
 # Create cache directory on data volume

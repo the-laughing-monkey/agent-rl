@@ -1,3 +1,5 @@
+The documentation of Swift is sometimes wrong, so best to have the command line export here for reference:
+
 usage: rlhf.py [-h] [--model MODEL] [--model_type MODEL_TYPE] [--model_revision MODEL_REVISION] [--task_type {causal_lm,seq_cls,embedding}] [--torch_dtype {bfloat16,float16,float32,None}]
                [--attn_impl {flash_attn,sdpa,eager,None}] [--num_labels NUM_LABELS] [--rope_scaling {linear,dynamic}] [--device_map DEVICE_MAP] [--local_repo_path LOCAL_REPO_PATH] [--template TEMPLATE]
                [--system SYSTEM] [--max_length MAX_LENGTH] [--truncation_strategy {delete,left,right}] [--max_pixels MAX_PIXELS] [--tools_prompt TOOLS_PROMPT] [--norm_bbox {norm1000,none,None}]
