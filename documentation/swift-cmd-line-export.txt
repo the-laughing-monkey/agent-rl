@@ -1,0 +1,760 @@
+usage: rlhf.py [-h] [--model MODEL] [--model_type MODEL_TYPE] [--model_revision MODEL_REVISION] [--task_type {causal_lm,seq_cls,embedding}] [--torch_dtype {bfloat16,float16,float32,None}]
+               [--attn_impl {flash_attn,sdpa,eager,None}] [--num_labels NUM_LABELS] [--rope_scaling {linear,dynamic}] [--device_map DEVICE_MAP] [--local_repo_path LOCAL_REPO_PATH] [--template TEMPLATE]
+               [--system SYSTEM] [--max_length MAX_LENGTH] [--truncation_strategy {delete,left,right}] [--max_pixels MAX_PIXELS] [--tools_prompt TOOLS_PROMPT] [--norm_bbox {norm1000,none,None}]
+               [--padding_side {left,right}] [--loss_scale LOSS_SCALE] [--sequence_parallel_size SEQUENCE_PARALLEL_SIZE] [--use_chat_template [USE_CHAT_TEMPLATE]] [--no_use_chat_template]
+               [--template_backend {swift,jinja}] [--dataset DATASET [DATASET ...]] [--val_dataset VAL_DATASET [VAL_DATASET ...]] [--split_dataset_ratio SPLIT_DATASET_RATIO] [--data_seed DATA_SEED]
+               [--dataset_num_proc DATASET_NUM_PROC] [--streaming [STREAMING]] [--enable_cache [ENABLE_CACHE]] [--download_mode {force_redownload,reuse_dataset_if_exists}] [--columns COLUMNS] [--strict [STRICT]]
+               [--remove_unused_columns [REMOVE_UNUSED_COLUMNS]] [--no_remove_unused_columns] [--model_name MODEL_NAME [MODEL_NAME ...]] [--model_author MODEL_AUTHOR [MODEL_AUTHOR ...]]
+               [--custom_dataset_info CUSTOM_DATASET_INFO [CUSTOM_DATASET_INFO ...]] [--quant_method {bnb,hqq,eetq,quanto}] [--quant_bits {1,2,3,4,8,float8}] [--hqq_axis HQQ_AXIS]
+               [--bnb_4bit_compute_dtype {float16,bfloat16,float32,None}] [--bnb_4bit_quant_type {fp4,nf4}] [--bnb_4bit_use_double_quant [BNB_4BIT_USE_DOUBLE_QUANT]] [--no_bnb_4bit_use_double_quant]
+               [--bnb_4bit_quant_storage BNB_4BIT_QUANT_STORAGE] [--max_new_tokens MAX_NEW_TOKENS] [--temperature TEMPERATURE] [--top_k TOP_K] [--top_p TOP_P] [--repetition_penalty REPETITION_PENALTY]
+               [--num_beams NUM_BEAMS] [--stream [STREAM]] [--stop_words STOP_WORDS [STOP_WORDS ...]] [--logprobs [LOGPROBS]] [--top_logprobs TOP_LOGPROBS] [--ckpt_dir CKPT_DIR]
+               [--load_dataset_config LOAD_DATASET_CONFIG] [--lora_modules LORA_MODULES [LORA_MODULES ...]] [--tuner_backend {peft,unsloth}] [--train_type TRAIN_TYPE] [--adapters ADAPTERS [ADAPTERS ...]]
+               [--seed SEED] [--model_kwargs MODEL_KWARGS] [--load_args [LOAD_ARGS]] [--no_load_args] [--load_data_args [LOAD_DATA_ARGS]] [--use_hf [USE_HF]] [--hub_token HUB_TOKEN]
+               [--custom_register_path CUSTOM_REGISTER_PATH [CUSTOM_REGISTER_PATH ...]] [--ignore_args_error [IGNORE_ARGS_ERROR]] [--use_swift_lora [USE_SWIFT_LORA]] [--output_dir OUTPUT_DIR]
+               [--overwrite_output_dir [OVERWRITE_OUTPUT_DIR]] [--do_train [DO_TRAIN]] [--do_eval [DO_EVAL]] [--do_predict [DO_PREDICT]] [--eval_strategy EVAL_STRATEGY]
+               [--prediction_loss_only [PREDICTION_LOSS_ONLY]] [--per_device_train_batch_size PER_DEVICE_TRAIN_BATCH_SIZE] [--per_device_eval_batch_size PER_DEVICE_EVAL_BATCH_SIZE]
+               [--per_gpu_train_batch_size PER_GPU_TRAIN_BATCH_SIZE] [--per_gpu_eval_batch_size PER_GPU_EVAL_BATCH_SIZE] [--gradient_accumulation_steps GRADIENT_ACCUMULATION_STEPS]
+               [--eval_accumulation_steps EVAL_ACCUMULATION_STEPS] [--eval_delay EVAL_DELAY] [--torch_empty_cache_steps TORCH_EMPTY_CACHE_STEPS] [--learning_rate LEARNING_RATE] [--weight_decay WEIGHT_DECAY]
+               [--adam_beta1 ADAM_BETA1] [--adam_beta2 ADAM_BETA2] [--adam_epsilon ADAM_EPSILON] [--max_grad_norm MAX_GRAD_NORM] [--num_train_epochs NUM_TRAIN_EPOCHS] [--max_steps MAX_STEPS]
+               [--lr_scheduler_type LR_SCHEDULER_TYPE] [--lr_scheduler_kwargs LR_SCHEDULER_KWARGS] [--warmup_ratio WARMUP_RATIO] [--warmup_steps WARMUP_STEPS]
+               [--log_level {detail,debug,info,warning,error,critical,passive}] [--log_level_replica {detail,debug,info,warning,error,critical,passive}] [--log_on_each_node [LOG_ON_EACH_NODE]]
+               [--no_log_on_each_node] [--logging_dir LOGGING_DIR] [--logging_strategy {no,steps,epoch}] [--logging_first_step [LOGGING_FIRST_STEP]] [--no_logging_first_step] [--logging_steps LOGGING_STEPS]
+               [--logging_nan_inf_filter [LOGGING_NAN_INF_FILTER]] [--no_logging_nan_inf_filter] [--save_strategy {no,steps,epoch,best}] [--save_steps SAVE_STEPS] [--save_total_limit SAVE_TOTAL_LIMIT]
+               [--save_safetensors [SAVE_SAFETENSORS]] [--no_save_safetensors] [--save_on_each_node [SAVE_ON_EACH_NODE]] [--save_only_model [SAVE_ONLY_MODEL]]
+               [--restore_callback_states_from_checkpoint [RESTORE_CALLBACK_STATES_FROM_CHECKPOINT]] [--no_cuda [NO_CUDA]] [--use_cpu [USE_CPU]] [--use_mps_device [USE_MPS_DEVICE]]
+               [--jit_mode_eval [JIT_MODE_EVAL]] [--use_ipex [USE_IPEX]] [--bf16 [BF16]] [--fp16 [FP16]] [--fp16_opt_level FP16_OPT_LEVEL] [--half_precision_backend {auto,apex,cpu_amp}]
+               [--bf16_full_eval [BF16_FULL_EVAL]] [--fp16_full_eval [FP16_FULL_EVAL]] [--tf32 TF32] [--local_rank LOCAL_RANK] [--ddp_backend {nccl,gloo,mpi,ccl,hccl,cncl,mccl}] [--tpu_num_cores TPU_NUM_CORES]
+               [--tpu_metrics_debug [TPU_METRICS_DEBUG]] [--debug DEBUG [DEBUG ...]] [--dataloader_drop_last [DATALOADER_DROP_LAST]] [--eval_steps EVAL_STEPS] [--dataloader_num_workers DATALOADER_NUM_WORKERS]
+               [--dataloader_prefetch_factor DATALOADER_PREFETCH_FACTOR] [--past_index PAST_INDEX] [--run_name RUN_NAME] [--disable_tqdm DISABLE_TQDM] [--label_names LABEL_NAMES [LABEL_NAMES ...]]
+               [--load_best_model_at_end [LOAD_BEST_MODEL_AT_END]] [--metric_for_best_model METRIC_FOR_BEST_MODEL] [--greater_is_better GREATER_IS_BETTER] [--ignore_data_skip [IGNORE_DATA_SKIP]] [--fsdp FSDP]
+               [--fsdp_min_num_params FSDP_MIN_NUM_PARAMS] [--fsdp_config FSDP_CONFIG] [--tp_size TP_SIZE] [--fsdp_transformer_layer_cls_to_wrap FSDP_TRANSFORMER_LAYER_CLS_TO_WRAP]
+               [--accelerator_config ACCELERATOR_CONFIG] [--deepspeed DEEPSPEED] [--label_smoothing_factor LABEL_SMOOTHING_FACTOR]
+               [--optim {adamw_hf,adamw_torch,adamw_torch_fused,adamw_torch_xla,adamw_torch_npu_fused,adamw_apex_fused,adafactor,adamw_anyprecision,adamw_torch_4bit,adamw_torch_8bit,ademamix,sgd,adagrad,adamw_bnb_8bit,adamw_8bit,ademamix_8bit,lion_8bit,lion_32bit,paged_adamw_32bit,paged_adamw_8bit,paged_ademamix_32bit,paged_ademamix_8bit,paged_lion_32bit,paged_lion_8bit,rmsprop,rmsprop_bnb,rmsprop_bnb_8bit,rmsprop_bnb_32bit,galore_adamw,galore_adamw_8bit,galore_adafactor,galore_adamw_layerwise,galore_adamw_8bit_layerwise,galore_adafactor_layerwise,lomo,adalomo,grokadamw,schedule_free_radam,schedule_free_adamw,schedule_free_sgd,apollo_adamw,apollo_adamw_layerwise}]
+               [--optim_args OPTIM_ARGS] [--adafactor [ADAFACTOR]] [--group_by_length [GROUP_BY_LENGTH]] [--length_column_name LENGTH_COLUMN_NAME] [--report_to REPORT_TO [REPORT_TO ...]]
+               [--ddp_find_unused_parameters DDP_FIND_UNUSED_PARAMETERS] [--ddp_bucket_cap_mb DDP_BUCKET_CAP_MB] [--ddp_broadcast_buffers DDP_BROADCAST_BUFFERS] [--dataloader_pin_memory [DATALOADER_PIN_MEMORY]]
+               [--no_dataloader_pin_memory] [--dataloader_persistent_workers [DATALOADER_PERSISTENT_WORKERS]] [--skip_memory_metrics [SKIP_MEMORY_METRICS]] [--no_skip_memory_metrics]
+               [--use_legacy_prediction_loop [USE_LEGACY_PREDICTION_LOOP]] [--push_to_hub [PUSH_TO_HUB]] [--resume_from_checkpoint RESUME_FROM_CHECKPOINT] [--hub_model_id HUB_MODEL_ID]
+               [--hub_strategy {end,every_save,checkpoint,all_checkpoints}] [--hub_private_repo HUB_PRIVATE_REPO] [--hub_always_push [HUB_ALWAYS_PUSH]] [--gradient_checkpointing [GRADIENT_CHECKPOINTING]]
+               [--no_gradient_checkpointing] [--gradient_checkpointing_kwargs GRADIENT_CHECKPOINTING_KWARGS] [--include_inputs_for_metrics [INCLUDE_INPUTS_FOR_METRICS]]
+               [--include_for_metrics INCLUDE_FOR_METRICS [INCLUDE_FOR_METRICS ...]] [--eval_do_concat_batches [EVAL_DO_CONCAT_BATCHES]] [--no_eval_do_concat_batches] [--fp16_backend {auto,apex,cpu_amp}]
+               [--evaluation_strategy {no,steps,epoch}] [--push_to_hub_model_id PUSH_TO_HUB_MODEL_ID] [--push_to_hub_organization PUSH_TO_HUB_ORGANIZATION] [--push_to_hub_token PUSH_TO_HUB_TOKEN]
+               [--mp_parameters MP_PARAMETERS] [--auto_find_batch_size [AUTO_FIND_BATCH_SIZE]] [--full_determinism [FULL_DETERMINISM]] [--torchdynamo TORCHDYNAMO] [--ray_scope RAY_SCOPE]
+               [--ddp_timeout DDP_TIMEOUT] [--torch_compile [TORCH_COMPILE]] [--torch_compile_backend TORCH_COMPILE_BACKEND] [--torch_compile_mode TORCH_COMPILE_MODE] [--dispatch_batches DISPATCH_BATCHES]
+               [--split_batches SPLIT_BATCHES] [--include_tokens_per_second [INCLUDE_TOKENS_PER_SECOND]] [--include_num_input_tokens_seen [INCLUDE_NUM_INPUT_TOKENS_SEEN]]
+               [--neftune_noise_alpha NEFTUNE_NOISE_ALPHA] [--optim_target_modules OPTIM_TARGET_MODULES] [--batch_eval_metrics [BATCH_EVAL_METRICS]] [--eval_on_start [EVAL_ON_START]]
+               [--use_liger_kernel [USE_LIGER_KERNEL]] [--eval_use_gather_object [EVAL_USE_GATHER_OBJECT]] [--average_tokens_across_devices [AVERAGE_TOKENS_ACROSS_DEVICES]] [--sortish_sampler [SORTISH_SAMPLER]]
+               [--predict_with_generate [PREDICT_WITH_GENERATE]] [--generation_max_length GENERATION_MAX_LENGTH] [--generation_num_beams GENERATION_NUM_BEAMS] [--generation_config GENERATION_CONFIG]
+               [--freeze_parameters FREEZE_PARAMETERS [FREEZE_PARAMETERS ...]] [--freeze_parameters_ratio FREEZE_PARAMETERS_RATIO] [--trainable_parameters TRAINABLE_PARAMETERS [TRAINABLE_PARAMETERS ...]]
+               [--freeze_llm [FREEZE_LLM]] [--freeze_vit [FREEZE_VIT]] [--no_freeze_vit] [--freeze_aligner [FREEZE_ALIGNER]] [--no_freeze_aligner] [--target_modules TARGET_MODULES [TARGET_MODULES ...]]
+               [--target_regex TARGET_REGEX] [--modules_to_save MODULES_TO_SAVE [MODULES_TO_SAVE ...]] [--lora_rank LORA_RANK] [--lora_alpha LORA_ALPHA] [--lora_dropout LORA_DROPOUT] [--lora_bias {none,all}]
+               [--lora_dtype {float16,bfloat16,float32,None}] [--lorap_lr_ratio LORAP_LR_RATIO] [--use_rslora [USE_RSLORA]] [--use_dora [USE_DORA]] [--lora_ga_batch_size LORA_GA_BATCH_SIZE]
+               [--lora_ga_iters LORA_GA_ITERS] [--lora_ga_max_length LORA_GA_MAX_LENGTH] [--lora_ga_direction LORA_GA_DIRECTION] [--lora_ga_scale LORA_GA_SCALE] [--lora_ga_stable_gamma LORA_GA_STABLE_GAMMA]
+               [--init_weights INIT_WEIGHTS] [--fourier_n_frequency FOURIER_N_FREQUENCY] [--fourier_scaling FOURIER_SCALING] [--boft_block_size BOFT_BLOCK_SIZE] [--boft_block_num BOFT_BLOCK_NUM]
+               [--boft_n_butterfly_factor BOFT_N_BUTTERFLY_FACTOR] [--boft_dropout BOFT_DROPOUT] [--vera_rank VERA_RANK] [--vera_projection_prng_key VERA_PROJECTION_PRNG_KEY] [--vera_dropout VERA_DROPOUT]
+               [--vera_d_initial VERA_D_INITIAL] [--adapter_act ADAPTER_ACT] [--adapter_length ADAPTER_LENGTH] [--use_galore [USE_GALORE]]
+               [--galore_target_modules GALORE_TARGET_MODULES [GALORE_TARGET_MODULES ...]] [--galore_rank GALORE_RANK] [--galore_update_proj_gap GALORE_UPDATE_PROJ_GAP] [--galore_scale GALORE_SCALE]
+               [--galore_proj_type GALORE_PROJ_TYPE] [--galore_optim_per_parameter [GALORE_OPTIM_PER_PARAMETER]] [--galore_with_embedding [GALORE_WITH_EMBEDDING]] [--galore_quantization [GALORE_QUANTIZATION]]
+               [--galore_proj_quant [GALORE_PROJ_QUANT]] [--galore_proj_bits GALORE_PROJ_BITS] [--galore_proj_group_size GALORE_PROJ_GROUP_SIZE] [--galore_cos_threshold GALORE_COS_THRESHOLD]
+               [--galore_gamma_proj GALORE_GAMMA_PROJ] [--galore_queue_size GALORE_QUEUE_SIZE] [--adalora_target_r ADALORA_TARGET_R] [--adalora_init_r ADALORA_INIT_R] [--adalora_tinit ADALORA_TINIT]
+               [--adalora_tfinal ADALORA_TFINAL] [--adalora_deltaT ADALORA_DELTAT] [--adalora_beta1 ADALORA_BETA1] [--adalora_beta2 ADALORA_BETA2] [--adalora_orth_reg_weight ADALORA_ORTH_REG_WEIGHT]
+               [--llamapro_num_new_blocks LLAMAPRO_NUM_NEW_BLOCKS] [--llamapro_num_groups LLAMAPRO_NUM_GROUPS] [--lisa_activated_layers LISA_ACTIVATED_LAYERS] [--lisa_step_interval LISA_STEP_INTERVAL]
+               [--reft_layer_key REFT_LAYER_KEY] [--reft_layers REFT_LAYERS [REFT_LAYERS ...]] [--reft_rank REFT_RANK]
+               [--reft_intervention_type {NoreftIntervention,LoreftIntervention,ConsreftIntervention,LobireftIntervention,DireftIntervention,NodireftIntervention}] [--reft_args REFT_ARGS]
+               [--use_liger [USE_LIGER]] [--model_layer_cls_name MODEL_LAYER_CLS_NAME] [--metric_warmup_step METRIC_WARMUP_STEP] [--fsdp_num FSDP_NUM] [--acc_steps ACC_STEPS] [--swanlab_token SWANLAB_TOKEN]
+               [--swanlab_project SWANLAB_PROJECT] [--swanlab_workspace SWANLAB_WORKSPACE] [--swanlab_exp_name SWANLAB_EXP_NAME] [--swanlab_mode {cloud,local}] [--add_version [ADD_VERSION]] [--no_add_version]
+               [--resume_only_model [RESUME_ONLY_MODEL]] [--check_model [CHECK_MODEL]] [--no_check_model] [--create_checkpoint_symlink [CREATE_CHECKPOINT_SYMLINK]] [--packing [PACKING]]
+               [--lazy_tokenize LAZY_TOKENIZE] [--external_plugins EXTERNAL_PLUGINS [EXTERNAL_PLUGINS ...]] [--loss_type LOSS_TYPE] [--optimizer OPTIMIZER] [--metric METRIC] [--acc_strategy {token,seq}]
+               [--reward_model REWARD_MODEL] [--reward_adapters REWARD_ADAPTERS [REWARD_ADAPTERS ...]] [--reward_model_type REWARD_MODEL_TYPE] [--reward_model_revision REWARD_MODEL_REVISION]
+               [--num_ppo_epochs NUM_PPO_EPOCHS] [--whiten_rewards [WHITEN_REWARDS]] [--kl_coef KL_COEF] [--cliprange CLIPRANGE] [--vf_coef VF_COEF] [--cliprange_value CLIPRANGE_VALUE] [--gamma GAMMA] [--lam LAM]
+               [--num_mini_batches NUM_MINI_BATCHES] [--local_rollout_forward_batch_size LOCAL_ROLLOUT_FORWARD_BATCH_SIZE] [--num_sample_generations NUM_SAMPLE_GENERATIONS] [--response_length RESPONSE_LENGTH]
+               [--missing_eos_penalty MISSING_EOS_PENALTY] [--vllm_max_num_seqs VLLM_MAX_NUM_SEQS] [--vllm_enforce_eager [VLLM_ENFORCE_EAGER]] [--vllm_limit_mm_per_prompt VLLM_LIMIT_MM_PER_PROMPT]
+               [--vllm_enable_prefix_caching [VLLM_ENABLE_PREFIX_CACHING]] [--no_vllm_enable_prefix_caching] [--cosine_min_len_value_wrong COSINE_MIN_LEN_VALUE_WRONG]
+               [--cosine_max_len_value_wrong COSINE_MAX_LEN_VALUE_WRONG] [--cosine_min_len_value_correct COSINE_MIN_LEN_VALUE_CORRECT] [--cosine_max_len_value_correct COSINE_MAX_LEN_VALUE_CORRECT]
+               [--cosine_max_len COSINE_MAX_LEN] [--repetition_n_grams REPETITION_N_GRAMS] [--repetition_max_penalty REPETITION_MAX_PENALTY] [--use_lmdeploy [USE_LMDEPLOY]] [--lmdeploy_device LMDEPLOY_DEVICE]
+               [--lmdeploy_session_len LMDEPLOY_SESSION_LEN] [--lmdeploy_cache_max_entry_count LMDEPLOY_CACHE_MAX_ENTRY_COUNT] [--num_generations NUM_GENERATIONS] [--max_completion_length MAX_COMPLETION_LENGTH]
+               [--ds3_gather_for_generation [DS3_GATHER_FOR_GENERATION]] [--no_ds3_gather_for_generation] [--reward_funcs REWARD_FUNCS [REWARD_FUNCS ...]] [--reward_weights REWARD_WEIGHTS [REWARD_WEIGHTS ...]]
+               [--log_completions [LOG_COMPLETIONS]] [--use_vllm [USE_VLLM]] [--vllm_device VLLM_DEVICE] [--vllm_gpu_memory_utilization VLLM_GPU_MEMORY_UTILIZATION] [--vllm_max_model_len VLLM_MAX_MODEL_LEN]
+               [--rlhf_type {dpo,orpo,simpo,kto,cpo,rm,ppo,grpo}] [--ref_model REF_MODEL] [--ref_model_type REF_MODEL_TYPE] [--ref_model_revision REF_MODEL_REVISION] [--beta BETA]
+               [--label_smoothing LABEL_SMOOTHING] [--rpo_alpha RPO_ALPHA] [--cpo_alpha CPO_ALPHA] [--simpo_gamma SIMPO_GAMMA] [--desirable_weight DESIRABLE_WEIGHT] [--undesirable_weight UNDESIRABLE_WEIGHT]
+
+options:
+  -h, --help            show this help message and exit
+  --model MODEL
+  --model_type MODEL_TYPE, --model-type MODEL_TYPE
+                        model_type choices: ['emu3_gen', 'emu3_chat', 'baichuan', 'baichuan2', 'modern_bert', 'modern_bert_gte', 'bert', 'chatglm2', 'chatglm3', 'glm4', 'longwriter_llama3_1', 'codegeex4',
+                        'glm4v', 'cogvlm', 'cogagent_chat', 'cogagent_vqa', 'cogvlm2', 'cogvlm2_video', 'glm_edge', 'glm_edge_v', 'qwen', 'modelscope_agent', 'qwen_audio', 'qwen_vl', 'qwen2', 'qwen2_5',
+                        'qwen2_5_math', 'qwen2_moe', 'qwen2_vl', 'qvq', 'qwen2_5_vl', 'qwen2_audio', 'marco_o1', 'qwq', 'ovis1_6', 'ovis1_6_llama3', 'ovis2', 'qwen2_reward', 'qwen2_5_prm', 'qwen2_5_math_reward',
+                        'codefuse_qwen', 'codefuse_codegeex2', 'codefuse_codellama', 'deepseek', 'deepseek_moe', 'deepseek_v2', 'deepseek_v2_5', 'deepseek_vl', 'deepseek_janus', 'deepseek_janus_pro',
+                        'deepseek_vl2', 'deepseek_r1', 'deepseek_r1_distill', 'paligemma', 'gemma', 'gemma2', 'internlm', 'internlm2', 'internlm3', 'internvl', 'internvl_phi3', 'internvl2', 'internvl2_phi3',
+                        'internvl2_5', 'xcomposer2_5', 'xcomposer2', 'xcomposer2_4khd', 'xcomposer2_5_ol_audio', 'internlm2_reward', 'llama', 'llama3', 'llama3_1', 'llama3_2', 'llama3_2_vision', 'llama3_1_omni',
+                        'reflection', 'atom', 'mengzi3', 'numina', 'ziya', 'megrez', 'llava_llama3_hf', 'llava1_5_hf', 'llava_onevision_hf', 'llava_next_qwen_hf', 'llama3_llava_next_hf', 'llava1_6_vicuna_hf',
+                        'llava1_6_mistral_hf', 'llava_llama3_1_hf', 'llava1_6_yi_hf', 'llava_next_video_hf', 'llava_next_video_yi_hf', 'llama3_llava_next', 'llava1_6_mistral', 'llava1_6_yi', 'llava_next_qwen',
+                        'grok', 'polylm', 'yuan2', 'orion', 'dbrx', 'bluelm', 'seggpt', 'xverse', 'xverse_moe', 'c4ai', 'aya', 'qwen2_gte', 'mamba', 'phi3_vision', 'florence', 'phi3_small', 'phi2', 'phi3',
+                        'phi4', 'phi3_moe', 'minicpm_moe', 'minicpmv', 'minicpmv2_5', 'minicpmv2_6', 'minicpmo2_6', 'minicpm', 'minicpm_chatml', 'minicpm3', 'minimax_vl', 'minimax', 'mistral', 'mixtral',
+                        'mistral_nemo', 'mistral_2501', 'zephyr', 'wizardlm2_moe', 'wizardlm2', 'idefics3', 'pixtral', 'molmoe', 'molmo', 'megrez_omni', 'mplug_owl2', 'mplug_owl2_1', 'mplug_owl3',
+                        'mplug_owl3_241101', 'doc_owl2', 'openbuddy_llama', 'openbuddy_llama3', 'openbuddy_mistral', 'openbuddy_mixtral', 'skywork', 'skywork_o1', 'llama3_2_reward', 'gemma_reward', 'got_ocr2',
+                        'got_ocr2_hf', 'step_audio', 'telechat', 'telechat2', 'valley', 'yi_vl', 'yi', 'yi_coder', 'sus'] (default: None)
+  --model_revision MODEL_REVISION, --model-revision MODEL_REVISION
+  --task_type {causal_lm,seq_cls,embedding}, --task-type {causal_lm,seq_cls,embedding}
+  --torch_dtype {bfloat16,float16,float32,None}, --torch-dtype {bfloat16,float16,float32,None}
+  --attn_impl {flash_attn,sdpa,eager,None}, --attn-impl {flash_attn,sdpa,eager,None}
+  --num_labels NUM_LABELS, --num-labels NUM_LABELS
+  --rope_scaling {linear,dynamic}, --rope-scaling {linear,dynamic}
+  --device_map DEVICE_MAP, --device-map DEVICE_MAP
+  --local_repo_path LOCAL_REPO_PATH, --local-repo-path LOCAL_REPO_PATH
+  --template TEMPLATE   template choices: ['deepseek', 'deepseek_coder', 'deepseek_vl', 'deepseek_janus', 'deepseek_v2_5', 'deepseek_r1', 'deepseek_vl2', 'deepseek_janus_pro', 'chatml', 'dummy', 'emu3_gen',
+                        'emu3_chat', 'gemma', 'paligemma', 'chatglm2', 'glm4v', 'glm4', 'codegeex4', 'longwriter_llama', 'cogagent_chat', 'cogagent_vqa', 'cogvlm', 'cogvlm2', 'cogvlm2_video', 'glm_edge_v',
+                        'idefics3', 'internlm', 'internlm2', 'internlm2_reward', 'ixcomposer2', 'xcomposer2_5', 'xcomposer2_4khd', 'florence', 'phi3', 'phi4', 'phi3_vision', 'internvl', 'internvl_phi3',
+                        'internvl2', 'internvl2_phi3', 'internvl2_5', 'llama', 'llama3', 'llama3_2', 'llama3_2_vision', 'reflection', 'llama3_1_omni', 'qwen', 'qwen2_5', 'qwq', 'qwen2_5_math', 'qwen2_5_math_prm',
+                        'qwen_vl', 'qwen_audio', 'qwen2_audio', 'qwen2_vl', 'qvq', 'qwen2_5_vl', 'ovis1_6', 'ovis1_6_llama3', 'ovis2', 'marco_o1', 'llava1_5_hf', 'llava_next_video_hf', 'llava1_6_mistral_hf',
+                        'llava1_6_vicuna_hf', 'llava1_6_yi_hf', 'llama3_llava_next_hf', 'llava_next_qwen_hf', 'llava_onevision_hf', 'llava_llama3_1_hf', 'llava_llama3_hf', 'llava1_6_mistral', 'llava1_6_yi',
+                        'llama3_llava_next', 'llava_next_qwen', 'default', 'modelscope_agent', 'baichuan', 'numina', 'mistral_nemo', 'mistral_2501', 'xverse', 'yuan', 'ziya', 'skywork', 'skywork_o1', 'bluelm',
+                        'codefuse_codellama', 'codefuse', 'zephyr', 'sus', 'orion', 'telechat', 'telechat2', 'dbrx', 'mengzi', 'c4ai', 'wizardlm2', 'wizardlm2_moe', 'atom', 'aya', 'megrez', 'megrez_omni',
+                        'minicpm', 'minicpmv', 'minicpmv2_5', 'minicpmv2_6', 'minicpmo2_6', 'minimax', 'minimax_vl', 'molmo', 'mplug_owl2', 'mplug_owl3', 'mplug_owl3_241101', 'doc_owl2', 'openbuddy',
+                        'openbuddy2', 'pixtral', 'got_ocr2', 'got_ocr2_hf', 'step_audio', 'valley', 'yi_coder', 'yi_vl'] (default: None)
+  --system SYSTEM
+  --max_length MAX_LENGTH, --max-length MAX_LENGTH
+  --truncation_strategy {delete,left,right}, --truncation-strategy {delete,left,right}
+  --max_pixels MAX_PIXELS, --max-pixels MAX_PIXELS
+  --tools_prompt TOOLS_PROMPT, --tools-prompt TOOLS_PROMPT
+  --norm_bbox {norm1000,none,None}, --norm-bbox {norm1000,none,None}
+  --padding_side {left,right}, --padding-side {left,right}
+  --loss_scale LOSS_SCALE, --loss-scale LOSS_SCALE
+  --sequence_parallel_size SEQUENCE_PARALLEL_SIZE, --sequence-parallel-size SEQUENCE_PARALLEL_SIZE
+  --use_chat_template [USE_CHAT_TEMPLATE], --use-chat-template [USE_CHAT_TEMPLATE]
+  --no_use_chat_template, --no-use-chat-template
+  --template_backend {swift,jinja}, --template-backend {swift,jinja}
+  --dataset DATASET [DATASET ...]
+                        dataset choices: [('AI-ModelScope/alpaca-gpt4-data-zh', 'llm-wizard/alpaca-gpt4-data-zh', None), ('AI-ModelScope/LongAlpaca-12k', 'Yukang/LongAlpaca-12k', None), ('AI-ModelScope/ruozhiba',
+                        None, None), ('AI-ModelScope/math-trn-format', None, None), ('iic/ms_bench', None, None), ('damo/MSAgent-Bench', None, None), ('lvjianjin/AdvertiseGen', 'shibing624/AdvertiseGen', None),
+                        ('AI-ModelScope/firefly-train-1.1M', 'YeungNLP/firefly-train-1.1M', None), ('modelscope/clue', 'clue', None), ('DAMO_NLP/jd', None, None), ('AI-ModelScope/synthetic_text_to_sql',
+                        'gretelai/synthetic_text_to_sql', None), ('shenweizhou/alpha-umi-toolbench-processed-v2', None, None), ('AI-ModelScope/blossom-math-v2', 'Azure99/blossom-math-v2', None), ('AI-
+                        ModelScope/sql-create-context', 'b-mc2/sql-create-context', None), ('AI-ModelScope/tigerbot-law-plugin', 'TigerResearch/tigerbot-law-plugin', None), ('codefuse-ai/CodeExercise-Python-27k',
+                        None, None), ('AI-ModelScope/leetcode-solutions-python', None, None), ('sentence-transformers/stsb', None, None), ('huangjintao/AgentInstruct_copy', None, None), ('iic/MSAgent-MultiRole',
+                        None, None), ('swift/ToolBench', None, None), ('tastelikefeet/competition_math', None, None), ('modelscope/gsm8k', None, None), ('modelscope/MathR', None, None),
+                        ('modelscope/MathR-32B-Distill', None, None), ('simpleai/HC3-Chinese', 'Hello-SimpleAI/HC3-Chinese', None), ('simpleai/HC3', 'Hello-SimpleAI/HC3', None), ('modelscope/DuReader_robust-QG',
+                        None, None), ('AI-ModelScope/hh-rlhf', None, None), ('LLM-Research/xlam-function-calling-60k', None, None), ('AI-ModelScope/hh_rlhf_cn', None, None), ('AI-ModelScope/lmsys-chat-1m',
+                        'lmsys/lmsys-chat-1m', None), ('hjh0119/shareAI-Llama3-DPO-zh-en-emoji', 'shareAI/DPO-zh-en-emoji', None), ('AI-ModelScope/ultrafeedback-binarized-preferences-cleaned-kto', None, None),
+                        ('OmniData/Zhihu-KOL-More-Than-100-Upvotes', 'bzb2023/Zhihu-KOL-More-Than-100-Upvotes', None), ('OmniData/Zhihu-KOL', 'wangrui6/Zhihu-KOL', None), ('AI-ModelScope/GuanacoDataset',
+                        'JosephusCheung/GuanacoDataset', None), ('AI-ModelScope/databricks-dolly-15k', 'databricks/databricks-dolly-15k', None), ('AI-ModelScope/orpo-dpo-mix-40k', 'mlabonne/orpo-dpo-mix-40k',
+                        None), ('swift/sharegpt', None, None), ('swift/self-cognition', 'modelscope/self-cognition', None), ('AI-ModelScope/ShareGPT-4o', 'OpenGVLab/ShareGPT-4o', None), ('swift/gpt4v-dataset',
+                        'laion/gpt4v-dataset', None), ('swift/RLAIF-V-Dataset', 'openbmb/RLAIF-V-Dataset', None), ('tany0699/garbage265', None, None), ('Tongyi-DataEngine/SA1B-Paired-Captions-Images', None,
+                        None), ('Tongyi-DataEngine/SA1B-Dense-Caption', None, None), ('modelscope/coco_2014_caption', None, None), ('swift/Mantis-Instruct', None, None), ('swift/llava-data', 'TIGER-Lab/llava-
+                        data', None), ('swift/pixelprose', 'tomg-group-umd/pixelprose', None), ('speech_asr/speech_asr_aishell1_trainsets', None, None), ('AI-ModelScope/egoschema', 'lmms-lab/egoschema', None),
+                        (None, 'lmms-lab/LLaVA-Video-178K', None), ('AI-ModelScope/MovieChat-1K-test', 'Enxin/MovieChat-1K-test', None), ('swift/VideoChatGPT', 'lmms-lab/VideoChatGPT', None), ('swift/Multimodal-
+                        Mind2Web', 'osunlp/Multimodal-Mind2Web', None), ('AI-ModelScope/M3IT', None, None), ('AI-ModelScope/ShareGPT4V', None, None), ('swift/TextCaps', 'HuggingFaceM4/TextCaps', None),
+                        ('swift/refcoco', 'jxu124/refcoco', None), ('swift/refcocog', 'jxu124/refcocog', None), ('swift/lnqa', 'vikhyatk/lnqa', None), ('AI-ModelScope/LLaVA-Instruct-150K', None, None), ('AI-
+                        ModelScope/LLaVA-Pretrain', 'liuhaotian/LLaVA-Pretrain', None), ('swift/MideficsDataset', 'WinterSchool/MideficsDataset', None), ('swift/OK-VQA_train', 'Multimodal-Fatima/OK-VQA_train',
+                        None), ('swift/A-OKVQA', 'HuggingFaceM4/A-OKVQA', None), ('swift/OCR-VQA', 'howard-hou/OCR-VQA', None), ('swift/ScienceQA', 'derek-thomas/ScienceQA', None), ('swift/GRIT', 'zzliang/GRIT',
+                        None), (None, 'lmms-lab/GQA', None), ('AI-ModelScope/coco', 'detection-datasets/coco', None), ('swift/llava-instruct-mix-vsft', 'HuggingFaceH4/llava-instruct-mix-vsft', None), ('AI-
+                        ModelScope/LaTeX_OCR', 'linxy/LaTeX_OCR', None), ('AI-ModelScope/captcha-images', None, None), ('AI-ModelScope/OpenO1-SFT', 'O1-OPEN/OpenO1-SFT', None), ('damo/nlp_polylm_multialpaca_sft',
+                        None, None), ('AI-ModelScope/texttosqlv2_25000_v2', 'Clinton/texttosqlv2_25000_v2', None), ('AI-ModelScope/school_math_0.25M', 'BelleGroup/school_math_0.25M', None), ('wyj123456/GPT4all',
+                        None, None), ('YorickHe/CoT_zh', None, None), ('YorickHe/CoT', None, None), ('wyj123456/instinwild', None, None), ('wyj123456/code_alpaca_en', 'sahil2801/CodeAlpaca-20k', None),
+                        ('wyj123456/finance_en', 'ssbuild/alpaca_finance_en', None), ('AI-ModelScope/alpaca-gpt4-data-en', 'vicgalle/alpaca-gpt4', None), ('AI-ModelScope/alpaca-cleaned', 'yahma/alpaca-cleaned',
+                        None), ('AI-ModelScope/OpenOrca-Chinese', 'yys/OpenOrca-Chinese', None), ('swift/chinese-c4', 'shjwudp/chinese-c4', None), (None, 'allenai/c4', None), ('swift/dolma', 'allenai/dolma',
+                        None), ('AI-ModelScope/guanaco_belle_merge_v1.0', 'Chinese-Vicuna/guanaco_belle_merge_v1.0', None), ('TIGER-Lab/MATH-plus', 'TIGER-Lab/MATH-plus', None), ('swift/path-vqa',
+                        'flaviagiammarino/path-vqa', None), ('swift/aya_collection', 'CohereForAI/aya_collection', None), ('swift/WebInstructSub', 'TIGER-Lab/WebInstructSub', None), ('swift/cinepile', 'tomg-
+                        group-umd/cinepile', None), ('swift/classical_chinese_translate', None, None), ('swift/tagengo-gpt4', 'lightblue/tagengo-gpt4', None), (None, 'HuggingFaceFW/fineweb', None),
+                        ('iic/100PoisonMpts', None, None), ('mapjack/openwebtext_dataset', None, None), ('swift/llava-med-zh-instruct-60k', 'BUAADreamer/llava-med-zh-instruct-60k', None), ('swift/ChartQA',
+                        'HuggingFaceM4/ChartQA', None), ('swift/VQAv2', 'HuggingFaceM4/VQAv2', None), ('swift/train_3.5M_CN', 'BelleGroup/train_3.5M_CN', None), ('AI-ModelScope/train_2M_CN',
+                        'BelleGroup/train_2M_CN', None), ('AI-ModelScope/train_1M_CN', 'BelleGroup/train_1M_CN', None), ('AI-ModelScope/train_0.5M_CN', 'BelleGroup/train_0.5M_CN', None), ('AI-
+                        ModelScope/Duet-v0.5', 'G-reen/Duet-v0.5', None), ('AI-ModelScope/CodeAlpaca-20k', 'HuggingFaceH4/CodeAlpaca_20K', None), ('AI-ModelScope/zhihu_rlhf_3k', 'liyucheng/zhihu_rlhf_3k', None),
+                        ('swift/ultrachat_200k', 'HuggingFaceH4/ultrachat_200k', None), ('AI-ModelScope/WizardLM_evol_instruct_V2_196k', 'WizardLM/WizardLM_evol_instruct_V2_196k', None), (None,
+                        'HuggingFaceTB/cosmopedia', None), ('swift/cosmopedia-100k', 'HuggingFaceTB/cosmopedia-100k', None), ('AI-ModelScope/COIG-CQIA', None, None), ('swift/orca_dpo_pairs',
+                        'Intel/orca_dpo_pairs', None), (None, 'tiiuae/falcon-refinedweb', None), ('swift/RedPajama-Data-V2', 'togethercomputer/RedPajama-Data-V2', None), ('swift/RedPajama-Data-1T',
+                        'togethercomputer/RedPajama-Data-1T', None), ('swift/GenQA', 'tomg-group-umd/GenQA', None), ('swift/Infinity-Instruct', 'BAAI/Infinity-Instruct', None), ('swift/wikipedia', 'wikipedia',
+                        None), ('swift/dolphin', 'cognitivecomputations/dolphin', None), ('AI-ModelScope/wikipedia-cn-20230720-filtered', 'pleisto/wikipedia-cn-20230720-filtered', None), ('AI-ModelScope/pile',
+                        'EleutherAI/pile', None), ('AI-ModelScope/SkyPile-150B', 'Skywork/SkyPile-150B', None), ('AI-ModelScope/the-stack', 'bigcode/the-stack', None), ('AI-ModelScope/starcoderdata',
+                        'bigcode/starcoderdata', None), ('AI-ModelScope/ms_agent_for_agentfabric', None, None), ('AI-ModelScope/deepctrl-sft-data', None, None), ('modelscope/chinese-poetry-collection', None,
+                        None), ('wyj123456/instruct', None, None), ('damo/zh_cls_fudan-news', None, None), ('damo/zh_ner-JAVE', None, None), ('AI-ModelScope/lawyer_llama_data', 'Skepsun/lawyer_llama_data', None),
+                        ('codefuse-ai/Evol-instruction-66k', None, None), ('AI-ModelScope/tulu-v2-sft-mixture', 'allenai/tulu-v2-sft-mixture', None), ('AI-ModelScope/webnovel_cn', 'zxbsmk/webnovel_cn', None),
+                        ('AI-ModelScope/SFT-Nectar', 'AstraMindAI/SFT-Nectar', None), ('AI-ModelScope/generated_chat_0.4M', 'BelleGroup/generated_chat_0.4M', None), ('AI-ModelScope/Open-Platypus', 'garage-
+                        bAInd/Open-Platypus', None), ('AI-ModelScope/OpenOrca', None, None), ('swift/SlimOrca', 'Open-Orca/SlimOrca', None), (None, 'cerebras/SlimPajama-627B', None),
+                        ('swift/moondream2-coyo-5M-captions', 'isidentical/moondream2-coyo-5M-captions', None), ('swift/no_robots', 'HuggingFaceH4/no_robots', None), ('swift/OpenHermes-2.5',
+                        'teknium/OpenHermes-2.5', None), ('swift/github-code', 'codeparrot/github-code', None), ('AI-ModelScope/DISC-Law-SFT', 'ShengbinYue/DISC-Law-SFT', None), ('AI-ModelScope/MathInstruct',
+                        'TIGER-Lab/MathInstruct', None), ('swift/pile-val-backup', 'mit-han-lab/pile-val-backup', None), ('AI-ModelScope/stack-exchange-paired', 'lvwerra/stack-exchange-paired', None),
+                        ('iic/ms_agent', None, None), ('iic/MSAgent-Pro', None, None), ('AI-ModelScope/sharegpt_gpt4', None, None), ('AI-ModelScope/DISC-Med-SFT', 'Flmc/DISC-Med-SFT', None), ('swift/medical_zh',
+                        None, None), ('swift/swift-sft-mixture', None, None), ('ZhipuAI/LongWriter-6k', 'THUDM/LongWriter-6k', None), ('swift/longwriter-6k-filtered', None, None), ('AI-ModelScope/Magpie-
+                        Qwen2-Pro-300K-Filtered', 'Magpie-Align/Magpie-Qwen2-Pro-300K-Filtered', None), ('AI-ModelScope/Magpie-Qwen2-Pro-200K-Chinese', 'Magpie-Align/Magpie-Qwen2-Pro-200K-Chinese', None), ('AI-
+                        ModelScope/Magpie-Qwen2-Pro-200K-English', 'Magpie-Align/Magpie-Qwen2-Pro-200K-English', None), ('PowerInfer/QWQ-LONGCOT-500K', 'PowerInfer/QWQ-LONGCOT-500K', None), ('PowerInfer/LONGCOT-
+                        Refine-500K', 'PowerInfer/LONGCOT-Refine-500K', None), ('ServiceNow-AI/R1-Distill-SFT', 'ServiceNow-AI/R1-Distill-SFT', None), ('bespokelabs/Bespoke-Stratos-17k', 'bespokelabs/Bespoke-
+                        Stratos-17k', None), ('open-thoughts/OpenThoughts-114k', 'open-thoughts/OpenThoughts-114k', None), ('HumanLLMs/Human-Like-DPO-Dataset', 'HumanLLMs/Human-Like-DPO-Dataset', None), ('AI-
+                        ModelScope/MATH-lighteval', 'DigitalLearningGmbH/MATH-lighteval', None), ('liucong/Chinese-DeepSeek-R1-Distill-data-110k-SFT', 'Congliu/Chinese-DeepSeek-R1-Distill-data-110k-SFT', None)]
+                        (default: [])
+  --val_dataset VAL_DATASET [VAL_DATASET ...], --val-dataset VAL_DATASET [VAL_DATASET ...]
+                        dataset choices: [('AI-ModelScope/alpaca-gpt4-data-zh', 'llm-wizard/alpaca-gpt4-data-zh', None), ('AI-ModelScope/LongAlpaca-12k', 'Yukang/LongAlpaca-12k', None), ('AI-ModelScope/ruozhiba',
+                        None, None), ('AI-ModelScope/math-trn-format', None, None), ('iic/ms_bench', None, None), ('damo/MSAgent-Bench', None, None), ('lvjianjin/AdvertiseGen', 'shibing624/AdvertiseGen', None),
+                        ('AI-ModelScope/firefly-train-1.1M', 'YeungNLP/firefly-train-1.1M', None), ('modelscope/clue', 'clue', None), ('DAMO_NLP/jd', None, None), ('AI-ModelScope/synthetic_text_to_sql',
+                        'gretelai/synthetic_text_to_sql', None), ('shenweizhou/alpha-umi-toolbench-processed-v2', None, None), ('AI-ModelScope/blossom-math-v2', 'Azure99/blossom-math-v2', None), ('AI-
+                        ModelScope/sql-create-context', 'b-mc2/sql-create-context', None), ('AI-ModelScope/tigerbot-law-plugin', 'TigerResearch/tigerbot-law-plugin', None), ('codefuse-ai/CodeExercise-Python-27k',
+                        None, None), ('AI-ModelScope/leetcode-solutions-python', None, None), ('sentence-transformers/stsb', None, None), ('huangjintao/AgentInstruct_copy', None, None), ('iic/MSAgent-MultiRole',
+                        None, None), ('swift/ToolBench', None, None), ('tastelikefeet/competition_math', None, None), ('modelscope/gsm8k', None, None), ('modelscope/MathR', None, None),
+                        ('modelscope/MathR-32B-Distill', None, None), ('simpleai/HC3-Chinese', 'Hello-SimpleAI/HC3-Chinese', None), ('simpleai/HC3', 'Hello-SimpleAI/HC3', None), ('modelscope/DuReader_robust-QG',
+                        None, None), ('AI-ModelScope/hh-rlhf', None, None), ('LLM-Research/xlam-function-calling-60k', None, None), ('AI-ModelScope/hh_rlhf_cn', None, None), ('AI-ModelScope/lmsys-chat-1m',
+                        'lmsys/lmsys-chat-1m', None), ('hjh0119/shareAI-Llama3-DPO-zh-en-emoji', 'shareAI/DPO-zh-en-emoji', None), ('AI-ModelScope/ultrafeedback-binarized-preferences-cleaned-kto', None, None),
+                        ('OmniData/Zhihu-KOL-More-Than-100-Upvotes', 'bzb2023/Zhihu-KOL-More-Than-100-Upvotes', None), ('OmniData/Zhihu-KOL', 'wangrui6/Zhihu-KOL', None), ('AI-ModelScope/GuanacoDataset',
+                        'JosephusCheung/GuanacoDataset', None), ('AI-ModelScope/databricks-dolly-15k', 'databricks/databricks-dolly-15k', None), ('AI-ModelScope/orpo-dpo-mix-40k', 'mlabonne/orpo-dpo-mix-40k',
+                        None), ('swift/sharegpt', None, None), ('swift/self-cognition', 'modelscope/self-cognition', None), ('AI-ModelScope/ShareGPT-4o', 'OpenGVLab/ShareGPT-4o', None), ('swift/gpt4v-dataset',
+                        'laion/gpt4v-dataset', None), ('swift/RLAIF-V-Dataset', 'openbmb/RLAIF-V-Dataset', None), ('tany0699/garbage265', None, None), ('Tongyi-DataEngine/SA1B-Paired-Captions-Images', None,
+                        None), ('Tongyi-DataEngine/SA1B-Dense-Caption', None, None), ('modelscope/coco_2014_caption', None, None), ('swift/Mantis-Instruct', None, None), ('swift/llava-data', 'TIGER-Lab/llava-
+                        data', None), ('swift/pixelprose', 'tomg-group-umd/pixelprose', None), ('speech_asr/speech_asr_aishell1_trainsets', None, None), ('AI-ModelScope/egoschema', 'lmms-lab/egoschema', None),
+                        (None, 'lmms-lab/LLaVA-Video-178K', None), ('AI-ModelScope/MovieChat-1K-test', 'Enxin/MovieChat-1K-test', None), ('swift/VideoChatGPT', 'lmms-lab/VideoChatGPT', None), ('swift/Multimodal-
+                        Mind2Web', 'osunlp/Multimodal-Mind2Web', None), ('AI-ModelScope/M3IT', None, None), ('AI-ModelScope/ShareGPT4V', None, None), ('swift/TextCaps', 'HuggingFaceM4/TextCaps', None),
+                        ('swift/refcoco', 'jxu124/refcoco', None), ('swift/refcocog', 'jxu124/refcocog', None), ('swift/lnqa', 'vikhyatk/lnqa', None), ('AI-ModelScope/LLaVA-Instruct-150K', None, None), ('AI-
+                        ModelScope/LLaVA-Pretrain', 'liuhaotian/LLaVA-Pretrain', None), ('swift/MideficsDataset', 'WinterSchool/MideficsDataset', None), ('swift/OK-VQA_train', 'Multimodal-Fatima/OK-VQA_train',
+                        None), ('swift/A-OKVQA', 'HuggingFaceM4/A-OKVQA', None), ('swift/OCR-VQA', 'howard-hou/OCR-VQA', None), ('swift/ScienceQA', 'derek-thomas/ScienceQA', None), ('swift/GRIT', 'zzliang/GRIT',
+                        None), (None, 'lmms-lab/GQA', None), ('AI-ModelScope/coco', 'detection-datasets/coco', None), ('swift/llava-instruct-mix-vsft', 'HuggingFaceH4/llava-instruct-mix-vsft', None), ('AI-
+                        ModelScope/LaTeX_OCR', 'linxy/LaTeX_OCR', None), ('AI-ModelScope/captcha-images', None, None), ('AI-ModelScope/OpenO1-SFT', 'O1-OPEN/OpenO1-SFT', None), ('damo/nlp_polylm_multialpaca_sft',
+                        None, None), ('AI-ModelScope/texttosqlv2_25000_v2', 'Clinton/texttosqlv2_25000_v2', None), ('AI-ModelScope/school_math_0.25M', 'BelleGroup/school_math_0.25M', None), ('wyj123456/GPT4all',
+                        None, None), ('YorickHe/CoT_zh', None, None), ('YorickHe/CoT', None, None), ('wyj123456/instinwild', None, None), ('wyj123456/code_alpaca_en', 'sahil2801/CodeAlpaca-20k', None),
+                        ('wyj123456/finance_en', 'ssbuild/alpaca_finance_en', None), ('AI-ModelScope/alpaca-gpt4-data-en', 'vicgalle/alpaca-gpt4', None), ('AI-ModelScope/alpaca-cleaned', 'yahma/alpaca-cleaned',
+                        None), ('AI-ModelScope/OpenOrca-Chinese', 'yys/OpenOrca-Chinese', None), ('swift/chinese-c4', 'shjwudp/chinese-c4', None), (None, 'allenai/c4', None), ('swift/dolma', 'allenai/dolma',
+                        None), ('AI-ModelScope/guanaco_belle_merge_v1.0', 'Chinese-Vicuna/guanaco_belle_merge_v1.0', None), ('TIGER-Lab/MATH-plus', 'TIGER-Lab/MATH-plus', None), ('swift/path-vqa',
+                        'flaviagiammarino/path-vqa', None), ('swift/aya_collection', 'CohereForAI/aya_collection', None), ('swift/WebInstructSub', 'TIGER-Lab/WebInstructSub', None), ('swift/cinepile', 'tomg-
+                        group-umd/cinepile', None), ('swift/classical_chinese_translate', None, None), ('swift/tagengo-gpt4', 'lightblue/tagengo-gpt4', None), (None, 'HuggingFaceFW/fineweb', None),
+                        ('iic/100PoisonMpts', None, None), ('mapjack/openwebtext_dataset', None, None), ('swift/llava-med-zh-instruct-60k', 'BUAADreamer/llava-med-zh-instruct-60k', None), ('swift/ChartQA',
+                        'HuggingFaceM4/ChartQA', None), ('swift/VQAv2', 'HuggingFaceM4/VQAv2', None), ('swift/train_3.5M_CN', 'BelleGroup/train_3.5M_CN', None), ('AI-ModelScope/train_2M_CN',
+                        'BelleGroup/train_2M_CN', None), ('AI-ModelScope/train_1M_CN', 'BelleGroup/train_1M_CN', None), ('AI-ModelScope/train_0.5M_CN', 'BelleGroup/train_0.5M_CN', None), ('AI-
+                        ModelScope/Duet-v0.5', 'G-reen/Duet-v0.5', None), ('AI-ModelScope/CodeAlpaca-20k', 'HuggingFaceH4/CodeAlpaca_20K', None), ('AI-ModelScope/zhihu_rlhf_3k', 'liyucheng/zhihu_rlhf_3k', None),
+                        ('swift/ultrachat_200k', 'HuggingFaceH4/ultrachat_200k', None), ('AI-ModelScope/WizardLM_evol_instruct_V2_196k', 'WizardLM/WizardLM_evol_instruct_V2_196k', None), (None,
+                        'HuggingFaceTB/cosmopedia', None), ('swift/cosmopedia-100k', 'HuggingFaceTB/cosmopedia-100k', None), ('AI-ModelScope/COIG-CQIA', None, None), ('swift/orca_dpo_pairs',
+                        'Intel/orca_dpo_pairs', None), (None, 'tiiuae/falcon-refinedweb', None), ('swift/RedPajama-Data-V2', 'togethercomputer/RedPajama-Data-V2', None), ('swift/RedPajama-Data-1T',
+                        'togethercomputer/RedPajama-Data-1T', None), ('swift/GenQA', 'tomg-group-umd/GenQA', None), ('swift/Infinity-Instruct', 'BAAI/Infinity-Instruct', None), ('swift/wikipedia', 'wikipedia',
+                        None), ('swift/dolphin', 'cognitivecomputations/dolphin', None), ('AI-ModelScope/wikipedia-cn-20230720-filtered', 'pleisto/wikipedia-cn-20230720-filtered', None), ('AI-ModelScope/pile',
+                        'EleutherAI/pile', None), ('AI-ModelScope/SkyPile-150B', 'Skywork/SkyPile-150B', None), ('AI-ModelScope/the-stack', 'bigcode/the-stack', None), ('AI-ModelScope/starcoderdata',
+                        'bigcode/starcoderdata', None), ('AI-ModelScope/ms_agent_for_agentfabric', None, None), ('AI-ModelScope/deepctrl-sft-data', None, None), ('modelscope/chinese-poetry-collection', None,
+                        None), ('wyj123456/instruct', None, None), ('damo/zh_cls_fudan-news', None, None), ('damo/zh_ner-JAVE', None, None), ('AI-ModelScope/lawyer_llama_data', 'Skepsun/lawyer_llama_data', None),
+                        ('codefuse-ai/Evol-instruction-66k', None, None), ('AI-ModelScope/tulu-v2-sft-mixture', 'allenai/tulu-v2-sft-mixture', None), ('AI-ModelScope/webnovel_cn', 'zxbsmk/webnovel_cn', None),
+                        ('AI-ModelScope/SFT-Nectar', 'AstraMindAI/SFT-Nectar', None), ('AI-ModelScope/generated_chat_0.4M', 'BelleGroup/generated_chat_0.4M', None), ('AI-ModelScope/Open-Platypus', 'garage-
+                        bAInd/Open-Platypus', None), ('AI-ModelScope/OpenOrca', None, None), ('swift/SlimOrca', 'Open-Orca/SlimOrca', None), (None, 'cerebras/SlimPajama-627B', None),
+                        ('swift/moondream2-coyo-5M-captions', 'isidentical/moondream2-coyo-5M-captions', None), ('swift/no_robots', 'HuggingFaceH4/no_robots', None), ('swift/OpenHermes-2.5',
+                        'teknium/OpenHermes-2.5', None), ('swift/github-code', 'codeparrot/github-code', None), ('AI-ModelScope/DISC-Law-SFT', 'ShengbinYue/DISC-Law-SFT', None), ('AI-ModelScope/MathInstruct',
+                        'TIGER-Lab/MathInstruct', None), ('swift/pile-val-backup', 'mit-han-lab/pile-val-backup', None), ('AI-ModelScope/stack-exchange-paired', 'lvwerra/stack-exchange-paired', None),
+                        ('iic/ms_agent', None, None), ('iic/MSAgent-Pro', None, None), ('AI-ModelScope/sharegpt_gpt4', None, None), ('AI-ModelScope/DISC-Med-SFT', 'Flmc/DISC-Med-SFT', None), ('swift/medical_zh',
+                        None, None), ('swift/swift-sft-mixture', None, None), ('ZhipuAI/LongWriter-6k', 'THUDM/LongWriter-6k', None), ('swift/longwriter-6k-filtered', None, None), ('AI-ModelScope/Magpie-
+                        Qwen2-Pro-300K-Filtered', 'Magpie-Align/Magpie-Qwen2-Pro-300K-Filtered', None), ('AI-ModelScope/Magpie-Qwen2-Pro-200K-Chinese', 'Magpie-Align/Magpie-Qwen2-Pro-200K-Chinese', None), ('AI-
+                        ModelScope/Magpie-Qwen2-Pro-200K-English', 'Magpie-Align/Magpie-Qwen2-Pro-200K-English', None), ('PowerInfer/QWQ-LONGCOT-500K', 'PowerInfer/QWQ-LONGCOT-500K', None), ('PowerInfer/LONGCOT-
+                        Refine-500K', 'PowerInfer/LONGCOT-Refine-500K', None), ('ServiceNow-AI/R1-Distill-SFT', 'ServiceNow-AI/R1-Distill-SFT', None), ('bespokelabs/Bespoke-Stratos-17k', 'bespokelabs/Bespoke-
+                        Stratos-17k', None), ('open-thoughts/OpenThoughts-114k', 'open-thoughts/OpenThoughts-114k', None), ('HumanLLMs/Human-Like-DPO-Dataset', 'HumanLLMs/Human-Like-DPO-Dataset', None), ('AI-
+                        ModelScope/MATH-lighteval', 'DigitalLearningGmbH/MATH-lighteval', None), ('liucong/Chinese-DeepSeek-R1-Distill-data-110k-SFT', 'Congliu/Chinese-DeepSeek-R1-Distill-data-110k-SFT', None)]
+                        (default: [])
+  --split_dataset_ratio SPLIT_DATASET_RATIO, --split-dataset-ratio SPLIT_DATASET_RATIO
+  --data_seed DATA_SEED, --data-seed DATA_SEED
+                        Random seed to be used with data samplers. (default: None)
+  --dataset_num_proc DATASET_NUM_PROC, --dataset-num-proc DATASET_NUM_PROC
+  --streaming [STREAMING]
+  --enable_cache [ENABLE_CACHE], --enable-cache [ENABLE_CACHE]
+  --download_mode {force_redownload,reuse_dataset_if_exists}, --download-mode {force_redownload,reuse_dataset_if_exists}
+  --columns COLUMNS
+  --strict [STRICT]
+  --remove_unused_columns [REMOVE_UNUSED_COLUMNS], --remove-unused-columns [REMOVE_UNUSED_COLUMNS]
+                        Remove columns not required by the model when using an nlp.Dataset. (default: True)
+  --no_remove_unused_columns, --no-remove-unused-columns
+                        Remove columns not required by the model when using an nlp.Dataset. (default: False)
+  --model_name MODEL_NAME [MODEL_NAME ...], --model-name MODEL_NAME [MODEL_NAME ...]
+                        e.g. ['小黄', 'Xiao Huang'] (default: [None, None])
+  --model_author MODEL_AUTHOR [MODEL_AUTHOR ...], --model-author MODEL_AUTHOR [MODEL_AUTHOR ...]
+                        e.g. ['魔搭', 'ModelScope'] (default: [None, None])
+  --custom_dataset_info CUSTOM_DATASET_INFO [CUSTOM_DATASET_INFO ...], --custom-dataset-info CUSTOM_DATASET_INFO [CUSTOM_DATASET_INFO ...]
+  --quant_method {bnb,hqq,eetq,quanto}, --quant-method {bnb,hqq,eetq,quanto}
+  --quant_bits {1,2,3,4,8,float8}, --quant-bits {1,2,3,4,8,float8}
+  --hqq_axis HQQ_AXIS, --hqq-axis HQQ_AXIS
+  --bnb_4bit_compute_dtype {float16,bfloat16,float32,None}, --bnb-4bit-compute-dtype {float16,bfloat16,float32,None}
+  --bnb_4bit_quant_type {fp4,nf4}, --bnb-4bit-quant-type {fp4,nf4}
+  --bnb_4bit_use_double_quant [BNB_4BIT_USE_DOUBLE_QUANT], --bnb-4bit-use-double-quant [BNB_4BIT_USE_DOUBLE_QUANT]
+  --no_bnb_4bit_use_double_quant, --no-bnb-4bit-use-double-quant
+  --bnb_4bit_quant_storage BNB_4BIT_QUANT_STORAGE, --bnb-4bit-quant-storage BNB_4BIT_QUANT_STORAGE
+  --max_new_tokens MAX_NEW_TOKENS, --max-new-tokens MAX_NEW_TOKENS
+  --temperature TEMPERATURE
+  --top_k TOP_K, --top-k TOP_K
+  --top_p TOP_P, --top-p TOP_P
+  --repetition_penalty REPETITION_PENALTY, --repetition-penalty REPETITION_PENALTY
+  --num_beams NUM_BEAMS, --num-beams NUM_BEAMS
+  --stream [STREAM]
+  --stop_words STOP_WORDS [STOP_WORDS ...], --stop-words STOP_WORDS [STOP_WORDS ...]
+  --logprobs [LOGPROBS]
+  --top_logprobs TOP_LOGPROBS, --top-logprobs TOP_LOGPROBS
+  --ckpt_dir CKPT_DIR, --ckpt-dir CKPT_DIR
+  --load_dataset_config LOAD_DATASET_CONFIG, --load-dataset-config LOAD_DATASET_CONFIG
+  --lora_modules LORA_MODULES [LORA_MODULES ...], --lora-modules LORA_MODULES [LORA_MODULES ...]
+  --tuner_backend {peft,unsloth}, --tuner-backend {peft,unsloth}
+  --train_type TRAIN_TYPE, --train-type TRAIN_TYPE
+                        train_type choices: ['reft', 'bone', 'fourierft', 'lora', 'boft', 'llamapro', 'longlora', 'full', 'vera', 'adalora', 'adapter', 'ia3'] (default: lora)
+  --adapters ADAPTERS [ADAPTERS ...]
+  --seed SEED           Random seed that will be set at the beginning of training. (default: 42)
+  --model_kwargs MODEL_KWARGS, --model-kwargs MODEL_KWARGS
+  --load_args [LOAD_ARGS], --load-args [LOAD_ARGS]
+  --no_load_args, --no-load-args
+  --load_data_args [LOAD_DATA_ARGS], --load-data-args [LOAD_DATA_ARGS]
+  --use_hf [USE_HF], --use-hf [USE_HF]
+  --hub_token HUB_TOKEN, --hub-token HUB_TOKEN
+                        The token to use to push to the Model Hub. (default: None)
+  --custom_register_path CUSTOM_REGISTER_PATH [CUSTOM_REGISTER_PATH ...], --custom-register-path CUSTOM_REGISTER_PATH [CUSTOM_REGISTER_PATH ...]
+  --ignore_args_error [IGNORE_ARGS_ERROR], --ignore-args-error [IGNORE_ARGS_ERROR]
+  --use_swift_lora [USE_SWIFT_LORA], --use-swift-lora [USE_SWIFT_LORA]
+  --output_dir OUTPUT_DIR, --output-dir OUTPUT_DIR
+  --overwrite_output_dir [OVERWRITE_OUTPUT_DIR], --overwrite-output-dir [OVERWRITE_OUTPUT_DIR]
+                        Overwrite the content of the output directory. Use this to continue training if output_dir points to a checkpoint directory. (default: False)
+  --do_train [DO_TRAIN], --do-train [DO_TRAIN]
+                        Whether to run training. (default: False)
+  --do_eval [DO_EVAL], --do-eval [DO_EVAL]
+                        Whether to run eval on the dev set. (default: False)
+  --do_predict [DO_PREDICT], --do-predict [DO_PREDICT]
+                        Whether to run predictions on the test set. (default: False)
+  --eval_strategy EVAL_STRATEGY, --eval-strategy EVAL_STRATEGY
+  --prediction_loss_only [PREDICTION_LOSS_ONLY], --prediction-loss-only [PREDICTION_LOSS_ONLY]
+                        When performing evaluation and predictions, only returns the loss. (default: False)
+  --per_device_train_batch_size PER_DEVICE_TRAIN_BATCH_SIZE, --per-device-train-batch-size PER_DEVICE_TRAIN_BATCH_SIZE
+  --per_device_eval_batch_size PER_DEVICE_EVAL_BATCH_SIZE, --per-device-eval-batch-size PER_DEVICE_EVAL_BATCH_SIZE
+  --per_gpu_train_batch_size PER_GPU_TRAIN_BATCH_SIZE, --per-gpu-train-batch-size PER_GPU_TRAIN_BATCH_SIZE
+                        Deprecated, the use of `--per_device_train_batch_size` is preferred. Batch size per GPU/TPU core/CPU for training. (default: None)
+  --per_gpu_eval_batch_size PER_GPU_EVAL_BATCH_SIZE, --per-gpu-eval-batch-size PER_GPU_EVAL_BATCH_SIZE
+                        Deprecated, the use of `--per_device_eval_batch_size` is preferred. Batch size per GPU/TPU core/CPU for evaluation. (default: None)
+  --gradient_accumulation_steps GRADIENT_ACCUMULATION_STEPS, --gradient-accumulation-steps GRADIENT_ACCUMULATION_STEPS
+                        Number of updates steps to accumulate before performing a backward/update pass. (default: 1)
+  --eval_accumulation_steps EVAL_ACCUMULATION_STEPS, --eval-accumulation-steps EVAL_ACCUMULATION_STEPS
+                        Number of predictions steps to accumulate before moving the tensors to the CPU. (default: None)
+  --eval_delay EVAL_DELAY, --eval-delay EVAL_DELAY
+                        Number of epochs or steps to wait for before the first evaluation can be performed, depending on the eval_strategy. (default: 0)
+  --torch_empty_cache_steps TORCH_EMPTY_CACHE_STEPS, --torch-empty-cache-steps TORCH_EMPTY_CACHE_STEPS
+                        Number of steps to wait before calling `torch.<device>.empty_cache()`.This can help avoid CUDA out-of-memory errors by lowering peak VRAM usage at a cost of about [10{'option_strings': ['
+                        --torch_empty_cache_steps', '--torch-empty-cache-steps'], 'dest': 'torch_empty_cache_steps', 'nargs': None, 'const': None, 'default': None, 'type': 'int', 'choices': None, 'required':
+                        False, 'help': 'Number of steps to wait before calling `torch.<device>.empty_cache()`.This can help avoid CUDA out-of-memory errors by lowering peak VRAM usage at a cost of about [10%
+                        slower performance](https://github.com/huggingface/transformers/issues/31372).If left unset or set to None, cache will not be emptied.', 'metavar': None, 'container':
+                        <argparse._ArgumentGroup object at 0x7534d9121010>, 'prog': 'rlhf.py'}lower performance](https://github.com/huggingface/transformers/issues/31372).If left unset or set to None, cache will
+                        not be emptied. (default: None)
+  --learning_rate LEARNING_RATE, --learning-rate LEARNING_RATE
+  --weight_decay WEIGHT_DECAY, --weight-decay WEIGHT_DECAY
+  --adam_beta1 ADAM_BETA1, --adam-beta1 ADAM_BETA1
+                        Beta1 for AdamW optimizer (default: 0.9)
+  --adam_beta2 ADAM_BETA2, --adam-beta2 ADAM_BETA2
+                        Beta2 for AdamW optimizer (default: 0.999)
+  --adam_epsilon ADAM_EPSILON, --adam-epsilon ADAM_EPSILON
+                        Epsilon for AdamW optimizer. (default: 1e-08)
+  --max_grad_norm MAX_GRAD_NORM, --max-grad-norm MAX_GRAD_NORM
+                        Max gradient norm. (default: 1.0)
+  --num_train_epochs NUM_TRAIN_EPOCHS, --num-train-epochs NUM_TRAIN_EPOCHS
+                        Total number of training epochs to perform. (default: 3.0)
+  --max_steps MAX_STEPS, --max-steps MAX_STEPS
+                        If > 0: set total number of training steps to perform. Override num_train_epochs. (default: -1)
+  --lr_scheduler_type LR_SCHEDULER_TYPE, --lr-scheduler-type LR_SCHEDULER_TYPE
+  --lr_scheduler_kwargs LR_SCHEDULER_KWARGS, --lr-scheduler-kwargs LR_SCHEDULER_KWARGS
+  --warmup_ratio WARMUP_RATIO, --warmup-ratio WARMUP_RATIO
+                        Linear warmup over warmup_ratio fraction of total steps. (default: 0.0)
+  --warmup_steps WARMUP_STEPS, --warmup-steps WARMUP_STEPS
+                        Linear warmup over warmup_steps. (default: 0)
+  --log_level {detail,debug,info,warning,error,critical,passive}, --log-level {detail,debug,info,warning,error,critical,passive}
+                        Logger log level to use on the main node. Possible choices are the log levels as strings: 'debug', 'info', 'warning', 'error' and 'critical', plus a 'passive' level which doesn't set
+                        anything and lets the application set the level. Defaults to 'passive'. (default: passive)
+  --log_level_replica {detail,debug,info,warning,error,critical,passive}, --log-level-replica {detail,debug,info,warning,error,critical,passive}
+                        Logger log level to use on replica nodes. Same choices and defaults as ``log_level`` (default: warning)
+  --log_on_each_node [LOG_ON_EACH_NODE], --log-on-each-node [LOG_ON_EACH_NODE]
+                        When doing a multinode distributed training, whether to log once per node or just once on the main node. (default: True)
+  --no_log_on_each_node, --no-log-on-each-node
+                        When doing a multinode distributed training, whether to log once per node or just once on the main node. (default: False)
+  --logging_dir LOGGING_DIR, --logging-dir LOGGING_DIR
+                        Tensorboard log dir. (default: None)
+  --logging_strategy {no,steps,epoch}, --logging-strategy {no,steps,epoch}
+                        The logging strategy to use. (default: steps)
+  --logging_first_step [LOGGING_FIRST_STEP], --logging-first-step [LOGGING_FIRST_STEP]
+  --no_logging_first_step, --no-logging-first-step
+  --logging_steps LOGGING_STEPS, --logging-steps LOGGING_STEPS
+  --logging_nan_inf_filter [LOGGING_NAN_INF_FILTER], --logging-nan-inf-filter [LOGGING_NAN_INF_FILTER]
+                        Filter nan and inf losses for logging. (default: True)
+  --no_logging_nan_inf_filter, --no-logging-nan-inf-filter
+                        Filter nan and inf losses for logging. (default: False)
+  --save_strategy {no,steps,epoch,best}, --save-strategy {no,steps,epoch,best}
+                        The checkpoint save strategy to use. (default: steps)
+  --save_steps SAVE_STEPS, --save-steps SAVE_STEPS
+                        Save checkpoint every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, will be interpreted as ratio of total training steps. (default: 500)
+  --save_total_limit SAVE_TOTAL_LIMIT, --save-total-limit SAVE_TOTAL_LIMIT
+                        If a value is passed, will limit the total amount of checkpoints. Deletes the older checkpoints in `output_dir`. When `load_best_model_at_end` is enabled, the 'best' checkpoint according
+                        to `metric_for_best_model` will always be retained in addition to the most recent ones. For example, for `save_total_limit=5` and `load_best_model_at_end=True`, the four last checkpoints
+                        will always be retained alongside the best model. When `save_total_limit=1` and `load_best_model_at_end=True`, it is possible that two checkpoints are saved: the last one and the best one
+                        (if they are different). Default is unlimited checkpoints (default: None)
+  --save_safetensors [SAVE_SAFETENSORS], --save-safetensors [SAVE_SAFETENSORS]
+                        Use safetensors saving and loading for state dicts instead of default torch.load and torch.save. (default: True)
+  --no_save_safetensors, --no-save-safetensors
+                        Use safetensors saving and loading for state dicts instead of default torch.load and torch.save. (default: False)
+  --save_on_each_node [SAVE_ON_EACH_NODE], --save-on-each-node [SAVE_ON_EACH_NODE]
+                        When doing multi-node distributed training, whether to save models and checkpoints on each node, or only on the main one (default: False)
+  --save_only_model [SAVE_ONLY_MODEL], --save-only-model [SAVE_ONLY_MODEL]
+                        When checkpointing, whether to only save the model, or also the optimizer, scheduler & rng state.Note that when this is true, you won't be able to resume training from checkpoint.This
+                        enables you to save storage by not storing the optimizer, scheduler & rng state.You can only load the model using from_pretrained with this option set to True. (default: False)
+  --restore_callback_states_from_checkpoint [RESTORE_CALLBACK_STATES_FROM_CHECKPOINT], --restore-callback-states-from-checkpoint [RESTORE_CALLBACK_STATES_FROM_CHECKPOINT]
+                        Whether to restore the callback states from the checkpoint. If `True`, will override callbacks passed to the `Trainer` if they exist in the checkpoint. (default: False)
+  --no_cuda [NO_CUDA], --no-cuda [NO_CUDA]
+                        This argument is deprecated. It will be removed in version 5.0 of 🤗 Transformers. (default: False)
+  --use_cpu [USE_CPU], --use-cpu [USE_CPU]
+                        Whether or not to use cpu. If set to False, we will use cuda/tpu/mps/npu device if available. (default: False)
+  --use_mps_device [USE_MPS_DEVICE], --use-mps-device [USE_MPS_DEVICE]
+                        This argument is deprecated. `mps` device will be used if available similar to `cuda` device. It will be removed in version 5.0 of 🤗 Transformers (default: False)
+  --jit_mode_eval [JIT_MODE_EVAL], --jit-mode-eval [JIT_MODE_EVAL]
+                        Whether or not to use PyTorch jit trace for inference (default: False)
+  --use_ipex [USE_IPEX], --use-ipex [USE_IPEX]
+                        Use Intel extension for PyTorch when it is available, installation: 'https://github.com/intel/intel-extension-for-pytorch' (default: False)
+  --bf16 [BF16]         Whether to use bf16 (mixed) precision instead of 32-bit. Requires Ampere or higher NVIDIA architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental API and it may change.
+                        (default: False)
+  --fp16 [FP16]         Whether to use fp16 (mixed) precision instead of 32-bit (default: False)
+  --fp16_opt_level FP16_OPT_LEVEL, --fp16-opt-level FP16_OPT_LEVEL
+                        For fp16: Apex AMP optimization level selected in ['O0', 'O1', 'O2', and 'O3']. See details at https://nvidia.github.io/apex/amp.html (default: O1)
+  --half_precision_backend {auto,apex,cpu_amp}, --half-precision-backend {auto,apex,cpu_amp}
+                        The backend to be used for half precision. (default: auto)
+  --bf16_full_eval [BF16_FULL_EVAL], --bf16-full-eval [BF16_FULL_EVAL]
+                        Whether to use full bfloat16 evaluation instead of 32-bit. This is an experimental API and it may change. (default: False)
+  --fp16_full_eval [FP16_FULL_EVAL], --fp16-full-eval [FP16_FULL_EVAL]
+                        Whether to use full float16 evaluation instead of 32-bit (default: False)
+  --tf32 TF32           Whether to enable tf32 mode, available in Ampere and newer GPU architectures. This is an experimental API and it may change. (default: None)
+  --local_rank LOCAL_RANK, --local-rank LOCAL_RANK
+                        For distributed training: local_rank (default: -1)
+  --ddp_backend {nccl,gloo,mpi,ccl,hccl,cncl,mccl}, --ddp-backend {nccl,gloo,mpi,ccl,hccl,cncl,mccl}
+                        The backend to be used for distributed training (default: None)
+  --tpu_num_cores TPU_NUM_CORES, --tpu-num-cores TPU_NUM_CORES
+                        TPU: Number of TPU cores (automatically passed by launcher script) (default: None)
+  --tpu_metrics_debug [TPU_METRICS_DEBUG], --tpu-metrics-debug [TPU_METRICS_DEBUG]
+                        Deprecated, the use of `--debug tpu_metrics_debug` is preferred. TPU: Whether to print debug metrics (default: False)
+  --debug DEBUG [DEBUG ...]
+                        Whether or not to enable debug mode. Current options: `underflow_overflow` (Detect underflow and overflow in activations and weights), `tpu_metrics_debug` (print debug metrics on TPU).
+                        (default: None)
+  --dataloader_drop_last [DATALOADER_DROP_LAST], --dataloader-drop-last [DATALOADER_DROP_LAST]
+                        Drop the last incomplete batch if it is not divisible by the batch size. (default: False)
+  --eval_steps EVAL_STEPS, --eval-steps EVAL_STEPS
+                        Run an evaluation every X steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, will be interpreted as ratio of total training steps. (default: None)
+  --dataloader_num_workers DATALOADER_NUM_WORKERS, --dataloader-num-workers DATALOADER_NUM_WORKERS
+                        Number of subprocesses to use for data loading (PyTorch only). 0 means that the data will be loaded in the main process. (default: 0)
+  --dataloader_prefetch_factor DATALOADER_PREFETCH_FACTOR, --dataloader-prefetch-factor DATALOADER_PREFETCH_FACTOR
+                        Number of batches loaded in advance by each worker. 2 means there will be a total of 2 * num_workers batches prefetched across all workers. Default is 2 for PyTorch < 2.0.0 and otherwise
+                        None. (default: None)
+  --past_index PAST_INDEX, --past-index PAST_INDEX
+                        If >=0, uses the corresponding part of the output as the past state for next step. (default: -1)
+  --run_name RUN_NAME, --run-name RUN_NAME
+                        An optional descriptor for the run. Notably used for wandb, mlflow and comet logging. (default: None)
+  --disable_tqdm DISABLE_TQDM, --disable-tqdm DISABLE_TQDM
+                        Whether or not to disable the tqdm progress bars. (default: None)
+  --label_names LABEL_NAMES [LABEL_NAMES ...], --label-names LABEL_NAMES [LABEL_NAMES ...]
+                        The list of keys in your dictionary of inputs that correspond to the labels. (default: None)
+  --load_best_model_at_end [LOAD_BEST_MODEL_AT_END], --load-best-model-at-end [LOAD_BEST_MODEL_AT_END]
+                        Whether or not to load the best model found during training at the end of training. When this option is enabled, the best checkpoint will always be saved. See `save_total_limit` for more.
+                        (default: False)
+  --metric_for_best_model METRIC_FOR_BEST_MODEL, --metric-for-best-model METRIC_FOR_BEST_MODEL
+                        The metric to use to compare two different models. (default: None)
+  --greater_is_better GREATER_IS_BETTER, --greater-is-better GREATER_IS_BETTER
+                        Whether the `metric_for_best_model` should be maximized or not. (default: None)
+  --ignore_data_skip [IGNORE_DATA_SKIP], --ignore-data-skip [IGNORE_DATA_SKIP]
+                        When resuming training, whether or not to skip the first epochs and batches to get to the same training data. (default: False)
+  --fsdp FSDP           Whether or not to use PyTorch Fully Sharded Data Parallel (FSDP) training (in distributed training only). The base option should be `full_shard`, `shard_grad_op` or `no_shard` and you can
+                        add CPU-offload to `full_shard` or `shard_grad_op` like this: full_shard offload` or `shard_grad_op offload`. You can add auto-wrap to `full_shard` or `shard_grad_op` with the same syntax:
+                        full_shard auto_wrap` or `shard_grad_op auto_wrap`. (default: )
+  --fsdp_min_num_params FSDP_MIN_NUM_PARAMS, --fsdp-min-num-params FSDP_MIN_NUM_PARAMS
+                        This parameter is deprecated. FSDP's minimum number of parameters for Default Auto Wrapping. (useful only when `fsdp` field is passed). (default: 0)
+  --fsdp_config FSDP_CONFIG, --fsdp-config FSDP_CONFIG
+                        Config to be used with FSDP (Pytorch Fully Sharded Data Parallel). The value is either a fsdp json config file (e.g., `fsdp_config.json`) or an already loaded json file as `dict`.
+                        (default: None)
+  --tp_size TP_SIZE, --tp-size TP_SIZE
+                        Use tp_size to enable pytorch tensor parallelism.Tensor parallelism support is only available to models having `base_tp_plan` in their respective config classes.Set a value greater than 1
+                        to activate TP.The same is used to prepare device mesh internally.Requires accelerate>1.3.0. (default: 0)
+  --fsdp_transformer_layer_cls_to_wrap FSDP_TRANSFORMER_LAYER_CLS_TO_WRAP, --fsdp-transformer-layer-cls-to-wrap FSDP_TRANSFORMER_LAYER_CLS_TO_WRAP
+                        This parameter is deprecated. Transformer layer class name (case-sensitive) to wrap, e.g, `BertLayer`, `GPTJBlock`, `T5Block` .... (useful only when `fsdp` flag is passed). (default: None)
+  --accelerator_config ACCELERATOR_CONFIG, --accelerator-config ACCELERATOR_CONFIG
+                        Config to be used with the internal Accelerator object initializtion. The value is either a accelerator json config file (e.g., `accelerator_config.json`) or an already loaded json file as
+                        `dict`. (default: None)
+  --deepspeed DEEPSPEED
+                        Enable deepspeed and pass the path to deepspeed json config file (e.g. `ds_config.json`) or an already loaded json file as a dict (default: None)
+  --label_smoothing_factor LABEL_SMOOTHING_FACTOR, --label-smoothing-factor LABEL_SMOOTHING_FACTOR
+                        The label smoothing epsilon to apply (zero means no label smoothing). (default: 0.0)
+  --optim {adamw_hf,adamw_torch,adamw_torch_fused,adamw_torch_xla,adamw_torch_npu_fused,adamw_apex_fused,adafactor,adamw_anyprecision,adamw_torch_4bit,adamw_torch_8bit,ademamix,sgd,adagrad,adamw_bnb_8bit,adamw_8bit,ademamix_8bit,lion_8bit,lion_32bit,paged_adamw_32bit,paged_adamw_8bit,paged_ademamix_32bit,paged_ademamix_8bit,paged_lion_32bit,paged_lion_8bit,rmsprop,rmsprop_bnb,rmsprop_bnb_8bit,rmsprop_bnb_32bit,galore_adamw,galore_adamw_8bit,galore_adafactor,galore_adamw_layerwise,galore_adamw_8bit_layerwise,galore_adafactor_layerwise,lomo,adalomo,grokadamw,schedule_free_radam,schedule_free_adamw,schedule_free_sgd,apollo_adamw,apollo_adamw_layerwise}
+                        The optimizer to use. (default: adamw_torch)
+  --optim_args OPTIM_ARGS, --optim-args OPTIM_ARGS
+                        Optional arguments to supply to optimizer. (default: None)
+  --adafactor [ADAFACTOR]
+                        Whether or not to replace AdamW by Adafactor. (default: False)
+  --group_by_length [GROUP_BY_LENGTH], --group-by-length [GROUP_BY_LENGTH]
+                        Whether or not to group samples of roughly the same length together when batching. (default: False)
+  --length_column_name LENGTH_COLUMN_NAME, --length-column-name LENGTH_COLUMN_NAME
+                        Column name with precomputed lengths to use when grouping by length. (default: length)
+  --report_to REPORT_TO [REPORT_TO ...], --report-to REPORT_TO [REPORT_TO ...]
+  --ddp_find_unused_parameters DDP_FIND_UNUSED_PARAMETERS, --ddp-find-unused-parameters DDP_FIND_UNUSED_PARAMETERS
+                        When using distributed training, the value of the flag `find_unused_parameters` passed to `DistributedDataParallel`. (default: None)
+  --ddp_bucket_cap_mb DDP_BUCKET_CAP_MB, --ddp-bucket-cap-mb DDP_BUCKET_CAP_MB
+                        When using distributed training, the value of the flag `bucket_cap_mb` passed to `DistributedDataParallel`. (default: None)
+  --ddp_broadcast_buffers DDP_BROADCAST_BUFFERS, --ddp-broadcast-buffers DDP_BROADCAST_BUFFERS
+                        When using distributed training, the value of the flag `broadcast_buffers` passed to `DistributedDataParallel`. (default: None)
+  --dataloader_pin_memory [DATALOADER_PIN_MEMORY], --dataloader-pin-memory [DATALOADER_PIN_MEMORY]
+                        Whether or not to pin memory for DataLoader. (default: True)
+  --no_dataloader_pin_memory, --no-dataloader-pin-memory
+                        Whether or not to pin memory for DataLoader. (default: False)
+  --dataloader_persistent_workers [DATALOADER_PERSISTENT_WORKERS], --dataloader-persistent-workers [DATALOADER_PERSISTENT_WORKERS]
+                        If True, the data loader will not shut down the worker processes after a dataset has been consumed once. This allows to maintain the workers Dataset instances alive. Can potentially speed
+                        up training, but will increase RAM usage. (default: False)
+  --skip_memory_metrics [SKIP_MEMORY_METRICS], --skip-memory-metrics [SKIP_MEMORY_METRICS]
+                        Whether or not to skip adding of memory profiler reports to metrics. (default: True)
+  --no_skip_memory_metrics, --no-skip-memory-metrics
+                        Whether or not to skip adding of memory profiler reports to metrics. (default: False)
+  --use_legacy_prediction_loop [USE_LEGACY_PREDICTION_LOOP], --use-legacy-prediction-loop [USE_LEGACY_PREDICTION_LOOP]
+                        Whether or not to use the legacy prediction_loop in the Trainer. (default: False)
+  --push_to_hub [PUSH_TO_HUB], --push-to-hub [PUSH_TO_HUB]
+                        Whether or not to upload the trained model to the model hub after training. (default: False)
+  --resume_from_checkpoint RESUME_FROM_CHECKPOINT, --resume-from-checkpoint RESUME_FROM_CHECKPOINT
+                        The path to a folder with a valid checkpoint for your model. (default: None)
+  --hub_model_id HUB_MODEL_ID, --hub-model-id HUB_MODEL_ID
+                        The name of the repository to keep in sync with the local `output_dir`. (default: None)
+  --hub_strategy {end,every_save,checkpoint,all_checkpoints}, --hub-strategy {end,every_save,checkpoint,all_checkpoints}
+                        The hub strategy to use when `--push_to_hub` is activated. (default: every_save)
+  --hub_private_repo HUB_PRIVATE_REPO, --hub-private-repo HUB_PRIVATE_REPO
+                        Whether to make the repo private. If `None` (default), the repo will be public unless the organization's default is private. This value is ignored if the repo already exists. (default:
+                        None)
+  --hub_always_push [HUB_ALWAYS_PUSH], --hub-always-push [HUB_ALWAYS_PUSH]
+                        Unless `True`, the Trainer will skip pushes if the previous one wasn't finished yet. (default: False)
+  --gradient_checkpointing [GRADIENT_CHECKPOINTING], --gradient-checkpointing [GRADIENT_CHECKPOINTING]
+  --no_gradient_checkpointing, --no-gradient-checkpointing
+  --gradient_checkpointing_kwargs GRADIENT_CHECKPOINTING_KWARGS, --gradient-checkpointing-kwargs GRADIENT_CHECKPOINTING_KWARGS
+  --include_inputs_for_metrics [INCLUDE_INPUTS_FOR_METRICS], --include-inputs-for-metrics [INCLUDE_INPUTS_FOR_METRICS]
+                        This argument is deprecated and will be removed in version 5 of 🤗 Transformers. Use `include_for_metrics` instead. (default: False)
+  --include_for_metrics INCLUDE_FOR_METRICS [INCLUDE_FOR_METRICS ...], --include-for-metrics INCLUDE_FOR_METRICS [INCLUDE_FOR_METRICS ...]
+                        List of strings to specify additional data to include in the `compute_metrics` function.Options: 'inputs', 'loss'. (default: [])
+  --eval_do_concat_batches [EVAL_DO_CONCAT_BATCHES], --eval-do-concat-batches [EVAL_DO_CONCAT_BATCHES]
+                        Whether to recursively concat inputs/losses/labels/predictions across batches. If `False`, will instead store them as lists, with each batch kept separate. (default: True)
+  --no_eval_do_concat_batches, --no-eval-do-concat-batches
+                        Whether to recursively concat inputs/losses/labels/predictions across batches. If `False`, will instead store them as lists, with each batch kept separate. (default: False)
+  --fp16_backend {auto,apex,cpu_amp}, --fp16-backend {auto,apex,cpu_amp}
+                        Deprecated. Use half_precision_backend instead (default: auto)
+  --evaluation_strategy {no,steps,epoch}, --evaluation-strategy {no,steps,epoch}
+                        Deprecated. Use `eval_strategy` instead (default: None)
+  --push_to_hub_model_id PUSH_TO_HUB_MODEL_ID, --push-to-hub-model-id PUSH_TO_HUB_MODEL_ID
+                        The name of the repository to which push the `Trainer`. (default: None)
+  --push_to_hub_organization PUSH_TO_HUB_ORGANIZATION, --push-to-hub-organization PUSH_TO_HUB_ORGANIZATION
+                        The name of the organization in with to which push the `Trainer`. (default: None)
+  --push_to_hub_token PUSH_TO_HUB_TOKEN, --push-to-hub-token PUSH_TO_HUB_TOKEN
+                        The token to use to push to the Model Hub. (default: None)
+  --mp_parameters MP_PARAMETERS, --mp-parameters MP_PARAMETERS
+                        Used by the SageMaker launcher to send mp-specific args. Ignored in Trainer (default: )
+  --auto_find_batch_size [AUTO_FIND_BATCH_SIZE], --auto-find-batch-size [AUTO_FIND_BATCH_SIZE]
+                        Whether to automatically decrease the batch size in half and rerun the training loop again each time a CUDA Out-of-Memory was reached (default: False)
+  --full_determinism [FULL_DETERMINISM], --full-determinism [FULL_DETERMINISM]
+                        Whether to call enable_full_determinism instead of set_seed for reproducibility in distributed training. Important: this will negatively impact the performance, so only use it for
+                        debugging. (default: False)
+  --torchdynamo TORCHDYNAMO
+                        This argument is deprecated, use `--torch_compile_backend` instead. (default: None)
+  --ray_scope RAY_SCOPE, --ray-scope RAY_SCOPE
+                        The scope to use when doing hyperparameter search with Ray. By default, `"last"` will be used. Ray will then use the last checkpoint of all trials, compare those, and select the best one.
+                        However, other options are also available. See the Ray documentation (https://docs.ray.io/en/latest/tune/api_docs/analysis.html#ray.tune.ExperimentAnalysis.get_best_trial) for more
+                        options. (default: last)
+  --ddp_timeout DDP_TIMEOUT, --ddp-timeout DDP_TIMEOUT
+                        Overrides the default timeout for distributed training (value should be given in seconds). (default: 1800)
+  --torch_compile [TORCH_COMPILE], --torch-compile [TORCH_COMPILE]
+                        If set to `True`, the model will be wrapped in `torch.compile`. (default: False)
+  --torch_compile_backend TORCH_COMPILE_BACKEND, --torch-compile-backend TORCH_COMPILE_BACKEND
+                        Which backend to use with `torch.compile`, passing one will trigger a model compilation. (default: None)
+  --torch_compile_mode TORCH_COMPILE_MODE, --torch-compile-mode TORCH_COMPILE_MODE
+                        Which mode to use with `torch.compile`, passing one will trigger a model compilation. (default: None)
+  --dispatch_batches DISPATCH_BATCHES, --dispatch-batches DISPATCH_BATCHES
+                        Deprecated. Pass {'dispatch_batches':VALUE} to `accelerator_config`. (default: None)
+  --split_batches SPLIT_BATCHES, --split-batches SPLIT_BATCHES
+                        Deprecated. Pass {'split_batches':True} to `accelerator_config`. (default: None)
+  --include_tokens_per_second [INCLUDE_TOKENS_PER_SECOND], --include-tokens-per-second [INCLUDE_TOKENS_PER_SECOND]
+                        If set to `True`, the speed metrics will include `tgs` (tokens per second per device). (default: False)
+  --include_num_input_tokens_seen [INCLUDE_NUM_INPUT_TOKENS_SEEN], --include-num-input-tokens-seen [INCLUDE_NUM_INPUT_TOKENS_SEEN]
+                        If set to `True`, will track the number of input tokens seen throughout training. (May be slower in distributed training) (default: False)
+  --neftune_noise_alpha NEFTUNE_NOISE_ALPHA, --neftune-noise-alpha NEFTUNE_NOISE_ALPHA
+                        Activates neftune noise embeddings into the model. NEFTune has been proven to drastically improve model performances for instrcution fine-tuning. Check out the original paper here:
+                        https://arxiv.org/abs/2310.05914 and the original code here: https://github.com/neelsjain/NEFTune. Only supported for `PreTrainedModel` and `PeftModel` classes. (default: None)
+  --optim_target_modules OPTIM_TARGET_MODULES, --optim-target-modules OPTIM_TARGET_MODULES
+                        Target modules for the optimizer defined in the `optim` argument. Only used for the GaLore optimizer at the moment. (default: None)
+  --batch_eval_metrics [BATCH_EVAL_METRICS], --batch-eval-metrics [BATCH_EVAL_METRICS]
+                        Break eval metrics calculation into batches to save memory. (default: False)
+  --eval_on_start [EVAL_ON_START], --eval-on-start [EVAL_ON_START]
+                        Whether to run through the entire `evaluation` step at the very beginning of training as a sanity check. (default: False)
+  --use_liger_kernel [USE_LIGER_KERNEL], --use-liger-kernel [USE_LIGER_KERNEL]
+                        Whether or not to enable the Liger Kernel for model training. (default: False)
+  --eval_use_gather_object [EVAL_USE_GATHER_OBJECT], --eval-use-gather-object [EVAL_USE_GATHER_OBJECT]
+                        Whether to run recursively gather object in a nested list/tuple/dictionary of objects from all devices. (default: False)
+  --average_tokens_across_devices [AVERAGE_TOKENS_ACROSS_DEVICES], --average-tokens-across-devices [AVERAGE_TOKENS_ACROSS_DEVICES]
+                        Whether or not to average tokens across devices. If enabled, will use all_reduce to synchronize num_tokens_in_batch for precise loss calculation. Reference:
+                        https://github.com/huggingface/transformers/issues/34242 (default: False)
+  --sortish_sampler [SORTISH_SAMPLER], --sortish-sampler [SORTISH_SAMPLER]
+                        Whether to use SortishSampler or not. (default: False)
+  --predict_with_generate [PREDICT_WITH_GENERATE], --predict-with-generate [PREDICT_WITH_GENERATE]
+                        Whether to use generate to calculate generative metrics (ROUGE, BLEU). (default: False)
+  --generation_max_length GENERATION_MAX_LENGTH, --generation-max-length GENERATION_MAX_LENGTH
+                        The `max_length` to use on each evaluation loop when `predict_with_generate=True`. Will default to the `max_length` value of the model configuration. (default: None)
+  --generation_num_beams GENERATION_NUM_BEAMS, --generation-num-beams GENERATION_NUM_BEAMS
+                        The `num_beams` to use on each evaluation loop when `predict_with_generate=True`. Will default to the `num_beams` value of the model configuration. (default: None)
+  --generation_config GENERATION_CONFIG, --generation-config GENERATION_CONFIG
+                        Model id, file path or url pointing to a GenerationConfig json file, to use during prediction. (default: None)
+  --freeze_parameters FREEZE_PARAMETERS [FREEZE_PARAMETERS ...], --freeze-parameters FREEZE_PARAMETERS [FREEZE_PARAMETERS ...]
+  --freeze_parameters_ratio FREEZE_PARAMETERS_RATIO, --freeze-parameters-ratio FREEZE_PARAMETERS_RATIO
+  --trainable_parameters TRAINABLE_PARAMETERS [TRAINABLE_PARAMETERS ...], --trainable-parameters TRAINABLE_PARAMETERS [TRAINABLE_PARAMETERS ...]
+  --freeze_llm [FREEZE_LLM], --freeze-llm [FREEZE_LLM]
+  --freeze_vit [FREEZE_VIT], --freeze-vit [FREEZE_VIT]
+  --no_freeze_vit, --no-freeze-vit
+  --freeze_aligner [FREEZE_ALIGNER], --freeze-aligner [FREEZE_ALIGNER]
+  --no_freeze_aligner, --no-freeze-aligner
+  --target_modules TARGET_MODULES [TARGET_MODULES ...], --target-modules TARGET_MODULES [TARGET_MODULES ...]
+  --target_regex TARGET_REGEX, --target-regex TARGET_REGEX
+  --modules_to_save MODULES_TO_SAVE [MODULES_TO_SAVE ...], --modules-to-save MODULES_TO_SAVE [MODULES_TO_SAVE ...]
+  --lora_rank LORA_RANK, --lora-rank LORA_RANK
+  --lora_alpha LORA_ALPHA, --lora-alpha LORA_ALPHA
+  --lora_dropout LORA_DROPOUT, --lora-dropout LORA_DROPOUT
+  --lora_bias {none,all}, --lora-bias {none,all}
+  --lora_dtype {float16,bfloat16,float32,None}, --lora-dtype {float16,bfloat16,float32,None}
+  --lorap_lr_ratio LORAP_LR_RATIO, --lorap-lr-ratio LORAP_LR_RATIO
+  --use_rslora [USE_RSLORA], --use-rslora [USE_RSLORA]
+  --use_dora [USE_DORA], --use-dora [USE_DORA]
+  --lora_ga_batch_size LORA_GA_BATCH_SIZE, --lora-ga-batch-size LORA_GA_BATCH_SIZE
+  --lora_ga_iters LORA_GA_ITERS, --lora-ga-iters LORA_GA_ITERS
+  --lora_ga_max_length LORA_GA_MAX_LENGTH, --lora-ga-max-length LORA_GA_MAX_LENGTH
+  --lora_ga_direction LORA_GA_DIRECTION, --lora-ga-direction LORA_GA_DIRECTION
+  --lora_ga_scale LORA_GA_SCALE, --lora-ga-scale LORA_GA_SCALE
+  --lora_ga_stable_gamma LORA_GA_STABLE_GAMMA, --lora-ga-stable-gamma LORA_GA_STABLE_GAMMA
+  --init_weights INIT_WEIGHTS, --init-weights INIT_WEIGHTS
+  --fourier_n_frequency FOURIER_N_FREQUENCY, --fourier-n-frequency FOURIER_N_FREQUENCY
+  --fourier_scaling FOURIER_SCALING, --fourier-scaling FOURIER_SCALING
+  --boft_block_size BOFT_BLOCK_SIZE, --boft-block-size BOFT_BLOCK_SIZE
+  --boft_block_num BOFT_BLOCK_NUM, --boft-block-num BOFT_BLOCK_NUM
+  --boft_n_butterfly_factor BOFT_N_BUTTERFLY_FACTOR, --boft-n-butterfly-factor BOFT_N_BUTTERFLY_FACTOR
+  --boft_dropout BOFT_DROPOUT, --boft-dropout BOFT_DROPOUT
+  --vera_rank VERA_RANK, --vera-rank VERA_RANK
+  --vera_projection_prng_key VERA_PROJECTION_PRNG_KEY, --vera-projection-prng-key VERA_PROJECTION_PRNG_KEY
+  --vera_dropout VERA_DROPOUT, --vera-dropout VERA_DROPOUT
+  --vera_d_initial VERA_D_INITIAL, --vera-d-initial VERA_D_INITIAL
+  --adapter_act ADAPTER_ACT, --adapter-act ADAPTER_ACT
+  --adapter_length ADAPTER_LENGTH, --adapter-length ADAPTER_LENGTH
+  --use_galore [USE_GALORE], --use-galore [USE_GALORE]
+  --galore_target_modules GALORE_TARGET_MODULES [GALORE_TARGET_MODULES ...], --galore-target-modules GALORE_TARGET_MODULES [GALORE_TARGET_MODULES ...]
+  --galore_rank GALORE_RANK, --galore-rank GALORE_RANK
+  --galore_update_proj_gap GALORE_UPDATE_PROJ_GAP, --galore-update-proj-gap GALORE_UPDATE_PROJ_GAP
+  --galore_scale GALORE_SCALE, --galore-scale GALORE_SCALE
+  --galore_proj_type GALORE_PROJ_TYPE, --galore-proj-type GALORE_PROJ_TYPE
+  --galore_optim_per_parameter [GALORE_OPTIM_PER_PARAMETER], --galore-optim-per-parameter [GALORE_OPTIM_PER_PARAMETER]
+  --galore_with_embedding [GALORE_WITH_EMBEDDING], --galore-with-embedding [GALORE_WITH_EMBEDDING]
+  --galore_quantization [GALORE_QUANTIZATION], --galore-quantization [GALORE_QUANTIZATION]
+  --galore_proj_quant [GALORE_PROJ_QUANT], --galore-proj-quant [GALORE_PROJ_QUANT]
+  --galore_proj_bits GALORE_PROJ_BITS, --galore-proj-bits GALORE_PROJ_BITS
+  --galore_proj_group_size GALORE_PROJ_GROUP_SIZE, --galore-proj-group-size GALORE_PROJ_GROUP_SIZE
+  --galore_cos_threshold GALORE_COS_THRESHOLD, --galore-cos-threshold GALORE_COS_THRESHOLD
+  --galore_gamma_proj GALORE_GAMMA_PROJ, --galore-gamma-proj GALORE_GAMMA_PROJ
+  --galore_queue_size GALORE_QUEUE_SIZE, --galore-queue-size GALORE_QUEUE_SIZE
+  --adalora_target_r ADALORA_TARGET_R, --adalora-target-r ADALORA_TARGET_R
+  --adalora_init_r ADALORA_INIT_R, --adalora-init-r ADALORA_INIT_R
+  --adalora_tinit ADALORA_TINIT, --adalora-tinit ADALORA_TINIT
+  --adalora_tfinal ADALORA_TFINAL, --adalora-tfinal ADALORA_TFINAL
+  --adalora_deltaT ADALORA_DELTAT, --adalora-deltaT ADALORA_DELTAT
+  --adalora_beta1 ADALORA_BETA1, --adalora-beta1 ADALORA_BETA1
+  --adalora_beta2 ADALORA_BETA2, --adalora-beta2 ADALORA_BETA2
+  --adalora_orth_reg_weight ADALORA_ORTH_REG_WEIGHT, --adalora-orth-reg-weight ADALORA_ORTH_REG_WEIGHT
+  --llamapro_num_new_blocks LLAMAPRO_NUM_NEW_BLOCKS, --llamapro-num-new-blocks LLAMAPRO_NUM_NEW_BLOCKS
+  --llamapro_num_groups LLAMAPRO_NUM_GROUPS, --llamapro-num-groups LLAMAPRO_NUM_GROUPS
+  --lisa_activated_layers LISA_ACTIVATED_LAYERS, --lisa-activated-layers LISA_ACTIVATED_LAYERS
+  --lisa_step_interval LISA_STEP_INTERVAL, --lisa-step-interval LISA_STEP_INTERVAL
+  --reft_layer_key REFT_LAYER_KEY, --reft-layer-key REFT_LAYER_KEY
+  --reft_layers REFT_LAYERS [REFT_LAYERS ...], --reft-layers REFT_LAYERS [REFT_LAYERS ...]
+  --reft_rank REFT_RANK, --reft-rank REFT_RANK
+  --reft_intervention_type {NoreftIntervention,LoreftIntervention,ConsreftIntervention,LobireftIntervention,DireftIntervention,NodireftIntervention}, --reft-intervention-type {NoreftIntervention,LoreftIntervention,ConsreftIntervention,LobireftIntervention,DireftIntervention,NodireftIntervention}
+  --reft_args REFT_ARGS, --reft-args REFT_ARGS
+  --use_liger [USE_LIGER], --use-liger [USE_LIGER]
+  --model_layer_cls_name MODEL_LAYER_CLS_NAME, --model-layer-cls-name MODEL_LAYER_CLS_NAME
+                        Decoder Class name of model, e.g. 'QWenBlock' for QWen, 'LlamaDecoderLayer' for LLama (default: None)
+  --metric_warmup_step METRIC_WARMUP_STEP, --metric-warmup-step METRIC_WARMUP_STEP
+  --fsdp_num FSDP_NUM, --fsdp-num FSDP_NUM
+  --acc_steps ACC_STEPS, --acc-steps ACC_STEPS
+  --swanlab_token SWANLAB_TOKEN, --swanlab-token SWANLAB_TOKEN
+  --swanlab_project SWANLAB_PROJECT, --swanlab-project SWANLAB_PROJECT
+  --swanlab_workspace SWANLAB_WORKSPACE, --swanlab-workspace SWANLAB_WORKSPACE
+  --swanlab_exp_name SWANLAB_EXP_NAME, --swanlab-exp-name SWANLAB_EXP_NAME
+  --swanlab_mode {cloud,local}, --swanlab-mode {cloud,local}
+  --add_version [ADD_VERSION], --add-version [ADD_VERSION]
+  --no_add_version, --no-add-version
+  --resume_only_model [RESUME_ONLY_MODEL], --resume-only-model [RESUME_ONLY_MODEL]
+  --check_model [CHECK_MODEL], --check-model [CHECK_MODEL]
+  --no_check_model, --no-check-model
+  --create_checkpoint_symlink [CREATE_CHECKPOINT_SYMLINK], --create-checkpoint-symlink [CREATE_CHECKPOINT_SYMLINK]
+  --packing [PACKING]
+  --lazy_tokenize LAZY_TOKENIZE, --lazy-tokenize LAZY_TOKENIZE
+  --external_plugins EXTERNAL_PLUGINS [EXTERNAL_PLUGINS ...], --external-plugins EXTERNAL_PLUGINS [EXTERNAL_PLUGINS ...]
+  --loss_type LOSS_TYPE, --loss-type LOSS_TYPE
+                        loss_func choices: ['loss_scale', 'cosine_similarity', 'contrastive', 'online_contrastive'] (default: None)
+  --optimizer OPTIMIZER
+  --metric METRIC
+  --acc_strategy {token,seq}, --acc-strategy {token,seq}
+  --reward_model REWARD_MODEL, --reward-model REWARD_MODEL
+  --reward_adapters REWARD_ADAPTERS [REWARD_ADAPTERS ...], --reward-adapters REWARD_ADAPTERS [REWARD_ADAPTERS ...]
+  --reward_model_type REWARD_MODEL_TYPE, --reward-model-type REWARD_MODEL_TYPE
+                        model_type choices: ['emu3_gen', 'emu3_chat', 'baichuan', 'baichuan2', 'modern_bert', 'modern_bert_gte', 'bert', 'chatglm2', 'chatglm3', 'glm4', 'longwriter_llama3_1', 'codegeex4',
+                        'glm4v', 'cogvlm', 'cogagent_chat', 'cogagent_vqa', 'cogvlm2', 'cogvlm2_video', 'glm_edge', 'glm_edge_v', 'qwen', 'modelscope_agent', 'qwen_audio', 'qwen_vl', 'qwen2', 'qwen2_5',
+                        'qwen2_5_math', 'qwen2_moe', 'qwen2_vl', 'qvq', 'qwen2_5_vl', 'qwen2_audio', 'marco_o1', 'qwq', 'ovis1_6', 'ovis1_6_llama3', 'ovis2', 'qwen2_reward', 'qwen2_5_prm', 'qwen2_5_math_reward',
+                        'codefuse_qwen', 'codefuse_codegeex2', 'codefuse_codellama', 'deepseek', 'deepseek_moe', 'deepseek_v2', 'deepseek_v2_5', 'deepseek_vl', 'deepseek_janus', 'deepseek_janus_pro',
+                        'deepseek_vl2', 'deepseek_r1', 'deepseek_r1_distill', 'paligemma', 'gemma', 'gemma2', 'internlm', 'internlm2', 'internlm3', 'internvl', 'internvl_phi3', 'internvl2', 'internvl2_phi3',
+                        'internvl2_5', 'xcomposer2_5', 'xcomposer2', 'xcomposer2_4khd', 'xcomposer2_5_ol_audio', 'internlm2_reward', 'llama', 'llama3', 'llama3_1', 'llama3_2', 'llama3_2_vision', 'llama3_1_omni',
+                        'reflection', 'atom', 'mengzi3', 'numina', 'ziya', 'megrez', 'llava_llama3_hf', 'llava1_5_hf', 'llava_onevision_hf', 'llava_next_qwen_hf', 'llama3_llava_next_hf', 'llava1_6_vicuna_hf',
+                        'llava1_6_mistral_hf', 'llava_llama3_1_hf', 'llava1_6_yi_hf', 'llava_next_video_hf', 'llava_next_video_yi_hf', 'llama3_llava_next', 'llava1_6_mistral', 'llava1_6_yi', 'llava_next_qwen',
+                        'grok', 'polylm', 'yuan2', 'orion', 'dbrx', 'bluelm', 'seggpt', 'xverse', 'xverse_moe', 'c4ai', 'aya', 'qwen2_gte', 'mamba', 'phi3_vision', 'florence', 'phi3_small', 'phi2', 'phi3',
+                        'phi4', 'phi3_moe', 'minicpm_moe', 'minicpmv', 'minicpmv2_5', 'minicpmv2_6', 'minicpmo2_6', 'minicpm', 'minicpm_chatml', 'minicpm3', 'minimax_vl', 'minimax', 'mistral', 'mixtral',
+                        'mistral_nemo', 'mistral_2501', 'zephyr', 'wizardlm2_moe', 'wizardlm2', 'idefics3', 'pixtral', 'molmoe', 'molmo', 'megrez_omni', 'mplug_owl2', 'mplug_owl2_1', 'mplug_owl3',
+                        'mplug_owl3_241101', 'doc_owl2', 'openbuddy_llama', 'openbuddy_llama3', 'openbuddy_mistral', 'openbuddy_mixtral', 'skywork', 'skywork_o1', 'llama3_2_reward', 'gemma_reward', 'got_ocr2',
+                        'got_ocr2_hf', 'step_audio', 'telechat', 'telechat2', 'valley', 'yi_vl', 'yi', 'yi_coder', 'sus'] (default: None)
+  --reward_model_revision REWARD_MODEL_REVISION, --reward-model-revision REWARD_MODEL_REVISION
+  --num_ppo_epochs NUM_PPO_EPOCHS, --num-ppo-epochs NUM_PPO_EPOCHS
+  --whiten_rewards [WHITEN_REWARDS], --whiten-rewards [WHITEN_REWARDS]
+  --kl_coef KL_COEF, --kl-coef KL_COEF
+  --cliprange CLIPRANGE
+  --vf_coef VF_COEF, --vf-coef VF_COEF
+  --cliprange_value CLIPRANGE_VALUE, --cliprange-value CLIPRANGE_VALUE
+  --gamma GAMMA
+  --lam LAM
+  --num_mini_batches NUM_MINI_BATCHES, --num-mini-batches NUM_MINI_BATCHES
+  --local_rollout_forward_batch_size LOCAL_ROLLOUT_FORWARD_BATCH_SIZE, --local-rollout-forward-batch-size LOCAL_ROLLOUT_FORWARD_BATCH_SIZE
+  --num_sample_generations NUM_SAMPLE_GENERATIONS, --num-sample-generations NUM_SAMPLE_GENERATIONS
+  --response_length RESPONSE_LENGTH, --response-length RESPONSE_LENGTH
+  --missing_eos_penalty MISSING_EOS_PENALTY, --missing-eos-penalty MISSING_EOS_PENALTY
+  --vllm_max_num_seqs VLLM_MAX_NUM_SEQS, --vllm-max-num-seqs VLLM_MAX_NUM_SEQS
+  --vllm_enforce_eager [VLLM_ENFORCE_EAGER], --vllm-enforce-eager [VLLM_ENFORCE_EAGER]
+  --vllm_limit_mm_per_prompt VLLM_LIMIT_MM_PER_PROMPT, --vllm-limit-mm-per-prompt VLLM_LIMIT_MM_PER_PROMPT
+  --vllm_enable_prefix_caching [VLLM_ENABLE_PREFIX_CACHING], --vllm-enable-prefix-caching [VLLM_ENABLE_PREFIX_CACHING]
+  --no_vllm_enable_prefix_caching, --no-vllm-enable-prefix-caching
+  --cosine_min_len_value_wrong COSINE_MIN_LEN_VALUE_WRONG, --cosine-min-len-value-wrong COSINE_MIN_LEN_VALUE_WRONG
+  --cosine_max_len_value_wrong COSINE_MAX_LEN_VALUE_WRONG, --cosine-max-len-value-wrong COSINE_MAX_LEN_VALUE_WRONG
+  --cosine_min_len_value_correct COSINE_MIN_LEN_VALUE_CORRECT, --cosine-min-len-value-correct COSINE_MIN_LEN_VALUE_CORRECT
+  --cosine_max_len_value_correct COSINE_MAX_LEN_VALUE_CORRECT, --cosine-max-len-value-correct COSINE_MAX_LEN_VALUE_CORRECT
+  --cosine_max_len COSINE_MAX_LEN, --cosine-max-len COSINE_MAX_LEN
+  --repetition_n_grams REPETITION_N_GRAMS, --repetition-n-grams REPETITION_N_GRAMS
+  --repetition_max_penalty REPETITION_MAX_PENALTY, --repetition-max-penalty REPETITION_MAX_PENALTY
+  --use_lmdeploy [USE_LMDEPLOY], --use-lmdeploy [USE_LMDEPLOY]
+  --lmdeploy_device LMDEPLOY_DEVICE, --lmdeploy-device LMDEPLOY_DEVICE
+  --lmdeploy_session_len LMDEPLOY_SESSION_LEN, --lmdeploy-session-len LMDEPLOY_SESSION_LEN
+  --lmdeploy_cache_max_entry_count LMDEPLOY_CACHE_MAX_ENTRY_COUNT, --lmdeploy-cache-max-entry-count LMDEPLOY_CACHE_MAX_ENTRY_COUNT
+  --num_generations NUM_GENERATIONS, --num-generations NUM_GENERATIONS
+  --max_completion_length MAX_COMPLETION_LENGTH, --max-completion-length MAX_COMPLETION_LENGTH
+  --ds3_gather_for_generation [DS3_GATHER_FOR_GENERATION], --ds3-gather-for-generation [DS3_GATHER_FOR_GENERATION]
+  --no_ds3_gather_for_generation, --no-ds3-gather-for-generation
+  --reward_funcs REWARD_FUNCS [REWARD_FUNCS ...], --reward-funcs REWARD_FUNCS [REWARD_FUNCS ...]
+  --reward_weights REWARD_WEIGHTS [REWARD_WEIGHTS ...], --reward-weights REWARD_WEIGHTS [REWARD_WEIGHTS ...]
+  --log_completions [LOG_COMPLETIONS], --log-completions [LOG_COMPLETIONS]
+  --use_vllm [USE_VLLM], --use-vllm [USE_VLLM]
+  --vllm_device VLLM_DEVICE, --vllm-device VLLM_DEVICE
+  --vllm_gpu_memory_utilization VLLM_GPU_MEMORY_UTILIZATION, --vllm-gpu-memory-utilization VLLM_GPU_MEMORY_UTILIZATION
+  --vllm_max_model_len VLLM_MAX_MODEL_LEN, --vllm-max-model-len VLLM_MAX_MODEL_LEN
+  --rlhf_type {dpo,orpo,simpo,kto,cpo,rm,ppo,grpo}, --rlhf-type {dpo,orpo,simpo,kto,cpo,rm,ppo,grpo}
+  --ref_model REF_MODEL, --ref-model REF_MODEL
+  --ref_model_type REF_MODEL_TYPE, --ref-model-type REF_MODEL_TYPE
+                        model_type choices: ['emu3_gen', 'emu3_chat', 'baichuan', 'baichuan2', 'modern_bert', 'modern_bert_gte', 'bert', 'chatglm2', 'chatglm3', 'glm4', 'longwriter_llama3_1', 'codegeex4',
+                        'glm4v', 'cogvlm', 'cogagent_chat', 'cogagent_vqa', 'cogvlm2', 'cogvlm2_video', 'glm_edge', 'glm_edge_v', 'qwen', 'modelscope_agent', 'qwen_audio', 'qwen_vl', 'qwen2', 'qwen2_5',
+                        'qwen2_5_math', 'qwen2_moe', 'qwen2_vl', 'qvq', 'qwen2_5_vl', 'qwen2_audio', 'marco_o1', 'qwq', 'ovis1_6', 'ovis1_6_llama3', 'ovis2', 'qwen2_reward', 'qwen2_5_prm', 'qwen2_5_math_reward',
+                        'codefuse_qwen', 'codefuse_codegeex2', 'codefuse_codellama', 'deepseek', 'deepseek_moe', 'deepseek_v2', 'deepseek_v2_5', 'deepseek_vl', 'deepseek_janus', 'deepseek_janus_pro',
+                        'deepseek_vl2', 'deepseek_r1', 'deepseek_r1_distill', 'paligemma', 'gemma', 'gemma2', 'internlm', 'internlm2', 'internlm3', 'internvl', 'internvl_phi3', 'internvl2', 'internvl2_phi3',
+                        'internvl2_5', 'xcomposer2_5', 'xcomposer2', 'xcomposer2_4khd', 'xcomposer2_5_ol_audio', 'internlm2_reward', 'llama', 'llama3', 'llama3_1', 'llama3_2', 'llama3_2_vision', 'llama3_1_omni',
+                        'reflection', 'atom', 'mengzi3', 'numina', 'ziya', 'megrez', 'llava_llama3_hf', 'llava1_5_hf', 'llava_onevision_hf', 'llava_next_qwen_hf', 'llama3_llava_next_hf', 'llava1_6_vicuna_hf',
+                        'llava1_6_mistral_hf', 'llava_llama3_1_hf', 'llava1_6_yi_hf', 'llava_next_video_hf', 'llava_next_video_yi_hf', 'llama3_llava_next', 'llava1_6_mistral', 'llava1_6_yi', 'llava_next_qwen',
+                        'grok', 'polylm', 'yuan2', 'orion', 'dbrx', 'bluelm', 'seggpt', 'xverse', 'xverse_moe', 'c4ai', 'aya', 'qwen2_gte', 'mamba', 'phi3_vision', 'florence', 'phi3_small', 'phi2', 'phi3',
+                        'phi4', 'phi3_moe', 'minicpm_moe', 'minicpmv', 'minicpmv2_5', 'minicpmv2_6', 'minicpmo2_6', 'minicpm', 'minicpm_chatml', 'minicpm3', 'minimax_vl', 'minimax', 'mistral', 'mixtral',
+                        'mistral_nemo', 'mistral_2501', 'zephyr', 'wizardlm2_moe', 'wizardlm2', 'idefics3', 'pixtral', 'molmoe', 'molmo', 'megrez_omni', 'mplug_owl2', 'mplug_owl2_1', 'mplug_owl3',
+                        'mplug_owl3_241101', 'doc_owl2', 'openbuddy_llama', 'openbuddy_llama3', 'openbuddy_mistral', 'openbuddy_mixtral', 'skywork', 'skywork_o1', 'llama3_2_reward', 'gemma_reward', 'got_ocr2',
+                        'got_ocr2_hf', 'step_audio', 'telechat', 'telechat2', 'valley', 'yi_vl', 'yi', 'yi_coder', 'sus'] (default: None)
+  --ref_model_revision REF_MODEL_REVISION, --ref-model-revision REF_MODEL_REVISION
+  --beta BETA
+  --label_smoothing LABEL_SMOOTHING, --label-smoothing LABEL_SMOOTHING
+  --rpo_alpha RPO_ALPHA, --rpo-alpha RPO_ALPHA
+  --cpo_alpha CPO_ALPHA, --cpo-alpha CPO_ALPHA
+  --simpo_gamma SIMPO_GAMMA, --simpo-gamma SIMPO_GAMMA
+  --desirable_weight DESIRABLE_WEIGHT, --desirable-weight DESIRABLE_WEIGHT
+  --undesirable_weight UNDESIRABLE_WEIGHT, --undesirable-weight UNDESIRABLE_WEIGHT
