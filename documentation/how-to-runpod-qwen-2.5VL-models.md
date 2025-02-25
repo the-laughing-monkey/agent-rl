@@ -8,7 +8,7 @@ This guide walks through setting up a RunPod instance with 1000GB storage and in
 - SSH client installed on your local machine
 - Basic familiarity with Linux commands
 
-## 1. Create 500GB Storage Volume
+## 1. Create 500GB-1000GB Storage Volume
 
 1. Log into your RunPod account
 2. Navigate to **Volumes** section
@@ -30,7 +30,7 @@ This guide walks through setting up a RunPod instance with 1000GB storage and in
    - Configure pod settings:
    - Choose Ubuntu-based template
    - Set container disk size
-   - Under **Volume**, attach your created 1000GB volume:
+   - Under **Volume**, attach your created 500GB volume:
      - Rename your Mount path: `/data`
    - Enable public IP
    - Set your container disk size to 50GB
