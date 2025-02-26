@@ -170,6 +170,8 @@ sed -i 's/trainer.n_gpus_per_node=4/trainer.n_gpus_per_node=8/' examples/run_qwe
 ```
 
 
+Then run the script:
+
 ```bash
 bash examples/run_qwen2_5_7b_math.sh
 ```
@@ -180,6 +182,7 @@ bash examples/run_qwen2_5_7b_math.sh
 > - The script sets the environment variable `VLLM_ATTENTION_BACKEND` to `XFORMERS` for efficient attention computation.
 > - The `MODEL_PATH` variable in the script should point to your local model path. Adjust it as needed.
 > - The example uses the [hiyouga/math12k](https://huggingface.co/datasets/hiyouga/math12k) dataset. Make sure your instance can reach external URLs to download the dataset if needed.
+> - If you disable wandb with `trainer.use_wandb=false`, the training metrics will only be displayed in the console output.
 
 If you would like to try the version that uses the SwanLab logger, run:
 

@@ -8,25 +8,15 @@ Welcome to the **agent-rl** repository! This repo contains training scripts for 
 </div>
 ## Requirements
 
-- **Python 3.8+**
-- **ms‑swift (v3):** Install the nightly build to access all capabilities.
-- **Hugging Face Transformers:** Nightly build for Qwen 2.5 VL model support.
-- **vLLM:** Nightly build for Qwen 2.5 VL model support
-- **DeepSpeed:** For zero3 sharding.
-- **Additional Dependencies:**  
-  - `math_verify` (for verifying math reasoning datasets with GRPO)  
-    ```bash
-    pip install math_verify
-    ```
-  - `qwen-vl-utils` *(for Qwen 2.5 VL models)*
-    ```bash
-    pip install qwen-vl-utils
-    ```
+See below guides for different RL Frameworks (ms-swift or EasyR1) and model sizes (Qwen 2.5 VL or Qwen 2.5)
 
 ## Setup and Installation
 
 For detailed instructions on setting up a RunPod instance with 1000GB storage, the SWIFT framework, and support for Qwen 2.5 VL models, please refer to:
 [How to RunPod with Qwen 2.5 VL Models](documentation/how-to-runpod-qwen-2.5VL-models.md)
+
+For instructions on setting up and running EasyR1 (a reinforcement learning framework for LLMs) on a RunPod instance with Qwen 2.5 models, please refer to:
+[How to Run EasyR1 with Qwen 2.5 Models on RunPod](documentation/how-to-runpod-qwen-2.5VL-with-easyr1.md)
 
 ## Usage
 
