@@ -20,14 +20,16 @@ Ensure that you have the following:
 
 ---
 
-## 2. Installing Git & Cloning the Repository
+## 2. Update System Packages & Install Python Tools
+```bash
+# Update system packages
+apt update && apt upgrade -y
 
-Open a terminal on your RunPod instance and execute the following commands:
-
-Update package index and install git (if not already installed)
-```bash 
-apt update && apt install git -y
+# Install Python tools
+apt install -y python3-pip python3-venv python3-dev vim curl wget htop zip unzip tar gzip build-essential libopenmpi-dev pkg-config git jq 
 ```
+
+## 3. Cloning the Repository
 
 Change directory to /data (where you want to clone the repository)
 ```bash
@@ -44,7 +46,7 @@ This will create a new directory `/data/EasyR1` containing the codebase.
 
 ---
 
-## 3. Setting Up the Python Environment
+## 4. Setting Up the Python Environment
 
 It is recommended to use a virtual environment to avoid dependency conflicts.
 
@@ -79,7 +81,7 @@ pip install wheel
 
 ---
 
-## 4. Installing the Project Dependencies
+## 5. Installing the Project Dependencies
 
 The most reliable method is to use the provided `requirements.txt` file and install the package in editable mode.
 
@@ -119,7 +121,7 @@ pip install -e .
 
 ---
 
-## 5. Install the Missing `mathruler` Dependency
+## 6. Install the Missing `mathruler` Dependency
 
 EasyR1 requires the `mathruler` package (used in `verl/utils/reward_score/math.py`), which is not included automatically in the `requirements.txt`. To install it, run:
 
@@ -131,7 +133,7 @@ This ensures that all dependencies are correctly installed and that any changes 
 
 ---
 
-## 6. Move Cache Directories to Data Volume
+## 7. Move Cache Directories to Data Volume
 
 To preserve disk space on the container and utilize the larger data volume for model storage, move cache directories:
 
@@ -159,7 +161,15 @@ This moves the model caches to your larger data volume and creates symlinks from
 
 ---
 
-## 7. Running an Example Script
+## 8. Set the WANDB_API_KEY Environment Variable
+
+```bash
+echo 'export WANDB_API_KEY=your_api_key_here' >> ~/.bashrc
+```
+
+---
+
+## 9. Running an Example Script
 
 EasyR1 comes with example shell scripts located in the `examples/` folder. To run a test example using the provided math dataset, execute:
 
@@ -181,8 +191,6 @@ bash examples/run_qwen2_5_7b_math.sh
 >
 > - The script sets the environment variable `VLLM_ATTENTION_BACKEND` to `XFORMERS` for efficient attention computation.
 > - The `MODEL_PATH` variable in the script should point to your local model path. Adjust it as needed.
-> - The example uses the [hiyouga/math12k](https://huggingface.co/datasets/hiyouga/math12k) dataset. Make sure your instance can reach external URLs to download the dataset if needed.
-> - If you disable wandb with `trainer.use_wandb=false`, the training metrics will only be displayed in the console output.
 
 If you would like to try the version that uses the SwanLab logger, run:
 
@@ -192,17 +200,22 @@ bash examples/run_qwen2_5_7b_math_swanlab.sh
 
 ---
 
-## 8. Monitoring NVIDIA GPU Memory
+## 10. Monitoring NVIDIA GPU Memory
 
 To monitor the NVIDIA GPU memory usage while the script loads and runs, open a new terminal session (or use a multiplexer like tmux/screen) and run:
 
 ```bash
 watch -n 1 nvidia-smi
+```
+
 # or
+
+```bash
 watch -n 1 "nvidia-smi --query-gpu=timestamp,index,name,utilization.gpu,utilization.memory,temperature.gpu,fan.speed,memory.total,memory.used,memory.free --format=csv,noheader,nounits"
 ```
 
 # or
+
 ```bash
 watch -n 1 "echo 'GPU   Total(MiB)   Used(MiB)'; nvidia-smi --query-gpu=index,memory.total,memory.used --format=csv,noheader,nounits | awk -F',' '{printf \"%-3s %-12s %-10s\n\", \$1, \$2, \$3}'"
 ```
@@ -213,7 +226,7 @@ This command updates the GPU status every second, allowing you to keep an eye on
 
 ---
 
-## 9. Summary
+## 11. Summary
 
 To recap:
 
